@@ -1,0 +1,44 @@
+<MessageFrame>
+    <messageId>20</messageId>
+    <value>
+        <BasicSafetyMessage>
+            <coreData>
+                <msgCnt>34</msgCnt>
+                <id>30 62 6A 5A</id>
+                <secMark>36618</secMark>
+                <lat>373815394</lat>
+                <long>-1219919597</long>
+                <elev>-4096</elev>
+                <accuracy>
+                    <semiMajor>255</semiMajor>
+                    <semiMinor>255</semiMinor>
+                    <orientation>65535</orientation>
+                </accuracy>
+                <transmission><unavailable/></transmission>
+                <speed>0</speed>
+                <heading>24165</heading>
+                <angle>127</angle>
+                <accelSet>
+                    <long>2001</long>
+                    <lat>2001</lat>
+                    <vert>-127</vert>
+                    <yaw>0</yaw>
+                </accelSet>
+                <brakes>
+                    <wheelBrakes>
+                        00000
+                    </wheelBrakes>
+                    <traction><unavailable/></traction>
+                    <abs><unavailable/></abs>
+                    <scs><unavailable/></scs>
+                    <brakeBoost><unavailable/></brakeBoost>
+                    <auxBrakes><unavailable/></auxBrakes>
+                </brakes>
+                <size>
+                    <width>200</width>
+                    <length>599</length>
+                </size>
+            </coreData>
+        </BasicSafetyMessage>
+    </value>
+</MessageFrame>
