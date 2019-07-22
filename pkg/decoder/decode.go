@@ -42,6 +42,10 @@ const (
 // Decode is a public function for other packages to decode
 func Decode(bytes []byte, length uint, format FormatType) string {
 	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
+	if msgFrame == nil {
+		Logger.Error("Cannot decode bytes to messageframe struct")
+		return ""
+	}
 	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
 	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
 
@@ -55,7 +59,7 @@ func Decode(bytes []byte, length uint, format FormatType) string {
 		if int(rval) == -1 {
 			err := "Cannot encode message!"
 			Logger.Error(err)
-			panic(err)
+			return ""
 		} else if int(rval) > len(buffer) {
 			size = int(rval)
 		}
@@ -90,7 +94,8 @@ func decodeMessageFrame(descriptor *C.asn_TYPE_descriptor_t, bytes []byte, lengt
 		C.ulong(length))
 	if rval.code != C.RC_OK {
 		err := fmt.Sprintf("Broken Rectangle encoding at byte %d", (uint64)(rval.consumed))
-		panic(err)
+		Logger.Error(err)
+		return nil
 	}
 	return (*C.MessageFrame_t)(decoded)
 }

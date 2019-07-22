@@ -19,7 +19,7 @@ func TestBSMXML(t *testing.T) {
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint64(read), decoder.XML)
+	decodedMsg := decoder.Decode(bytes, uint(read), decoder.XML)
 	read, err = xml.Read(bytes)
 	assert.NilError(t, err)
 	xmlStr := fmt.Sprintf("%s", bytes)
@@ -33,7 +33,7 @@ func TestBSMJSON(t *testing.T) {
 	bytes := make([]byte, 2048)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint64(read), decoder.JSON)
+	decodedMsg := decoder.Decode(bytes, uint(read), decoder.JSON)
 	assert.NilError(t, err)
 	var jsonMap map[string]interface{}
 	var ok bool

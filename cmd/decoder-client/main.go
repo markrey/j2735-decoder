@@ -3,18 +3,16 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/yh742/j2735-decoder/pkg/decoder"
-
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/yh742/j2735-decoder/pkg/decoder"
 )
 
 var logger log.Logger
@@ -93,7 +91,7 @@ func main() {
 	params = parameters{
 		hostname: hostname,
 		server:   "",
-		subTopic: "",
+		subTopic: "#",
 		qos:      0,
 		clientid: hostname + strconv.Itoa(time.Now().Second()),
 		username: "",
@@ -112,6 +110,11 @@ func main() {
 	logger.Debug("Username: ", params.username)
 	logger.Debug("Password: ", params.password)
 
+	if params.server == "" {
+		logger.Error("Must specify a server to connect to")
+		os.Exit(2)
+	}
+
 	connOpts := MQTT.NewClientOptions().AddBroker(params.server).SetClientID(params.clientid).SetCleanSession(true)
 	if params.username != "" {
 		logger.Debug("Username and password specfied")
@@ -126,17 +129,16 @@ func main() {
 	connOpts.OnConnect = func(c MQTT.Client) {
 		if token := c.Subscribe(params.subTopic, byte(params.qos), onMessageReceived); token.Wait() && token.Error() != nil {
 			logger.Error(token.Error())
-			panic(token.Error())
+			os.Exit(3)
 		}
 	}
 
 	client := MQTT.NewClient(connOpts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		logger.Error(token.Error())
-		panic(token.Error())
-	} else {
-		fmt.Printf("Connected to %s\n", params.server)
+		os.Exit(4)
 	}
+	logger.Debug("Connected to %s\n", params.server)
 
 	// wait for control-c signal here
 	<-c
