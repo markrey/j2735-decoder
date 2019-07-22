@@ -40,8 +40,8 @@ const (
 )
 
 // Decode is a public function for other packages to decode
-func Decode(bytes []byte, length uint64, format FormatType) string {
-	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, length)
+func Decode(bytes []byte, length uint, format FormatType) string {
+	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
 	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
 	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
 
