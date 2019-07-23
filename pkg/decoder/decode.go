@@ -1,9 +1,10 @@
 package decoder
 
-// #cgo CFLAGS: -I ./c/
-// #cgo LDFLAGS: -L ./c/ -lasncodec
+// #cgo CFLAGS: -I${SRCDIR}/c/
+// #cgo LDFLAGS: -L${SRCDIR}/c/ -lasncodec
 // #include <MessageFrame.h>
 // #include <xer_encoder.h>
+// #include <per_decoder.h>
 // void free_struct(asn_TYPE_descriptor_t descriptor, void* frame) {
 // 		ASN_STRUCT_FREE(descriptor, frame);
 // }
@@ -24,8 +25,8 @@ package decoder
 import "C"
 import (
 	"fmt"
-	"strings"
 	"unsafe"
+	"strings"
 
 	xj "github.com/basgys/goxml2json"
 )
@@ -77,6 +78,7 @@ func Decode(bytes []byte, length uint, format FormatType) string {
 			panic(err)
 		}
 		return json.String()
+		return xmlStr
 	}
 	return ""
 }

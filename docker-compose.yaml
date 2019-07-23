@@ -1,0 +1,50 @@
+version: "3.3"
+
+services:
+  jdecoder:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    networks: 
+      - mqtt
+    depends_on:
+      - mosquitto
+    environment:
+      SERVER: mosquitto:1883
+      SUBTOPIC: bsm
+      PUBTOPIC: decoded_bsm
+    command: -log=debug
+  
+  jdecoder-test-pub:
+    build: 
+      context: .
+      dockerfile: pub.Dockerfile
+    networks: 
+      - mqtt
+    depends_on:
+      - mosquitto
+    environment:
+      SERVER: mosquitto:1883
+      FILENAME: /app/bsm1.uper
+      PUBTOPIC: bsm
+      SUBTOPIC: decoded_bsm
+    command: -log=debug
+    volumes:
+      - type: bind
+        source: ./pkg/decoder/test/bsm1.uper
+        target: /app/bsm1.uper
+
+  mosquitto:
+    image: eclipse-mosquitto
+    hostname: mosquitto
+    networks:
+      - mqtt
+    expose:
+      - "1883"
+      - "9001"
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+networks:
+  mqtt:

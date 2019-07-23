@@ -9,10 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/yh742/j2735-decoder/pkg/decoder"
+
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/yh742/j2735-decoder/pkg/decoder"
 )
 
 var logger log.Logger
@@ -36,6 +37,7 @@ func decodeRoutine(client MQTT.Client, message MQTT.Message) {
 		(decoder.FormatType)(params.format))
 	if params.pubTopic != "" {
 		client.Publish(params.pubTopic, byte(params.qos), false, decodedMsg)
+		logger.Info(decodedMsg)
 	}
 }
 
@@ -55,15 +57,15 @@ func getEnv(key string, def string) string {
 
 func getParameters(params *parameters) {
 	// get environment variables
-	params.hostname = getEnv("hostname", params.hostname)
-	params.server = getEnv("server", params.server)
-	params.subTopic = getEnv("subTopic", params.subTopic)
-	params.pubTopic = getEnv("pubTopic", params.pubTopic)
-	params.qos, _ = strconv.Atoi(getEnv("qos", strconv.Itoa(params.qos)))
-	params.clientid = getEnv("clientid", params.clientid)
-	params.username = getEnv("username", params.username)
-	params.password = getEnv("password", params.password)
-	params.format, _ = strconv.Atoi(getEnv("format", strconv.Itoa(params.format)))
+	params.hostname = getEnv("HOSTNAME", params.hostname)
+	params.server = getEnv("SERVER", params.server)
+	params.subTopic = getEnv("SUBTOPIC", params.subTopic)
+	params.pubTopic = getEnv("PUBTOPIC", params.pubTopic)
+	params.qos, _ = strconv.Atoi(getEnv("QOS", strconv.Itoa(params.qos)))
+	params.clientid = getEnv("CLIENTID", params.clientid)
+	params.username = getEnv("USERNAME", params.username)
+	params.password = getEnv("PASSWORD", params.password)
+	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
 
 	// command line overrides
 	params.hostname = *flag.String("hostname", params.hostname, "The host machine name")
@@ -138,7 +140,7 @@ func main() {
 		logger.Error(token.Error())
 		os.Exit(4)
 	}
-	logger.Debug("Connected to %s\n", params.server)
+	logger.Debugf("Connected to %s\n", params.server)
 
 	// wait for control-c signal here
 	<-c
