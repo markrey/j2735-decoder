@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: j2735-decoder
+  name: sdmap-agent
 spec:
   selector:
     matchLabels:
-      run: j2735
+      run: sdmap-agent
   replicas: 1
   template:
     metadata:
       labels:
-        run: j2735
+        run: sdmap-agent
     spec:
       containers:
-      - name: j2735-decoder
-        image: yhseanhsu/j2735-decoder:latest
+      - name: sdmap-agent
+        image: yhseanhsu/sdmap-agent:latest
         imagePullPolicy: Always
         resources:
           requests:
