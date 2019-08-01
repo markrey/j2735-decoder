@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: j2735-decoder
+spec:
+  selector:
+    matchLabels:
+      run: j2735
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: j2735
+    spec:
+      containers:
+      - name: j2735-decoder
+        image: yhseanhsu/j2735-decoder:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "1Gi"
+            ephemeral-storage: "2Gi"
+          limits:
+            memory: "2Gi"
+            ephemeral-storage: "4Gi"
+        env:
+        - name: FORMAT
+          value: "1"
+        - name: PUBSERVER
+          value: mosquitto-broker-internal-service.default.svc.cluster.local:1883
+        - name: SUBSERVER
+          value: mosquitto-internal-service.default.svc.cluster.local:1883
+        - name: PUBTOPIC
+          value: DecodedBSM
+        - name: SUBTOPIC
+          value: VSCMobility/1.0.0/BSM/Video/Some_Merlin
+        args:
+        - "log=debug"
