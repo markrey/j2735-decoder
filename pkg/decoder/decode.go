@@ -27,7 +27,6 @@ import (
 	"fmt"
 	"unsafe"
 	"strings"
-	"encoding/json"
 
 	xj "github.com/basgys/goxml2json"
 )
@@ -39,7 +38,7 @@ type FormatType int
 const (
 	XML  FormatType = iota
 	JSON FormatType = iota
-	SDBSMJSON FormatType = iota
+	SDMAP FormatType = iota
 )
 
 // ID to identify message type
@@ -60,7 +59,10 @@ type SDMap struct {
 }
 
 // Decode is a public function for other packages to decode
-func Decode(bytes []byte, length uint, format FormatType) string {
+// json, xml format return full string 
+// sdmap format return struct 
+// TODO: refactor this properly
+func Decode(bytes []byte, length uint, format FormatType) interface{} {
 	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
 	if msgFrame == nil {
 		Logger.Error("Cannot decode bytes to messageframe struct")
@@ -97,7 +99,7 @@ func Decode(bytes []byte, length uint, format FormatType) string {
 				panic(err)
 			}
 			return json.String()
-		case SDBSMJSON:
+		case SDMAP:
 			if int64(msgFrame.messageId) == BSMID {
 				coreData := (*C.BasicSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice)).coreData
 				sdData := &SDMap{
@@ -110,15 +112,12 @@ func Decode(bytes []byte, length uint, format FormatType) string {
 					Heading:    int64(coreData.heading),
 					Angle:      int64(coreData.angle),
 				}
-				bsmJSON, _ := json.Marshal(sdData)
-				Logger.Info(string(bsmJSON))
-				return string(bsmJSON)
+				return sdData
 			}
 			return "" 
 		default:
 			return xmlStr
 		}	
-	return ""
 }
 
 // decodeMessageFrame requires caller to free the MessageFrame returned

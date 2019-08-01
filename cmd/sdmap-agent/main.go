@@ -13,12 +13,12 @@ import (
 
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
+	CMap"github.com/orcaman/concurrent-map"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 var logger log.Logger
-var params parameters
-var pubChan chan string
+var cmap CMap.ConcurrentMap
 
 type parameters struct {
 	hostname  string
@@ -31,13 +31,15 @@ type parameters struct {
 	username  string
 	password  string
 	format    int
+	pubFreq   int
 }
 
 func decodeRoutine(client MQTT.Client, message MQTT.Message) {
-	decodedMsg := decoder.Decode(message.Payload(),
-		uint(len(message.Payload())),
-		(decoder.FormatType)(params.format))
-	pubChan <- decodedMsg 
+	decodedMsg := decoder.Decode(message.Payload(), uint(len(message.Payload())), decoder.SDMAP)
+	sdData, ok := decodedMsg.(*decoder.SDMap)
+	if ok {
+		cmap.Set(sdData.ID, sdData)
+	}
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
@@ -65,7 +67,8 @@ func getParameters(params *parameters) {
 	params.clientid = getEnv("CLIENTID", params.clientid)
 	params.username = getEnv("USERNAME", params.username)
 	params.password = getEnv("PASSWORD", params.password)
-	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
+//	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
+	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
 
 	// command line overrides
 	params.hostname = *flag.String("hostname", params.hostname, "The host machine name")
@@ -77,12 +80,14 @@ func getParameters(params *parameters) {
 	params.clientid = *flag.String("clientid", params.clientid, "A clientid for the connection")
 	params.username = *flag.String("username", params.username, "A username to authenticate to the MQTT server")
 	params.password = *flag.String("password", params.password, "Password to match username")
-	params.format = *flag.Int("format", params.format, "Decoding format of message")
+//	params.format = *flag.Int("format", params.format, "Decoding format of message")
+	params.pubFreq = *flag.Int("pubFreq", params.pubFreq, "Publish frequency in 100ms increments")
 	flag.Parse()
 }
 
 func init() {
 	logger = stdlog.GetFromFlags()
+	cmap  = CMap.New()
 }
 
 func createClient(clientid string, username string, password string, server string, qos int, topic string,
@@ -102,7 +107,8 @@ func createClient(clientid string, username string, password string, server stri
 	// set connection callback
 	connOpts.OnConnect = func(c MQTT.Client) {
 		if topic != "" {
-			if token := c.Subscribe(topic, byte(qos), msgRcd); token.Wait() && token.Error() != nil {
+			if token := c.Subscribe(topic, byte(qos), msgRcd); 
+				token.Wait() && token.Error() != nil {
 				logger.Error(token.Error())
 				os.Exit(3)
 			}
@@ -119,12 +125,11 @@ func createClient(clientid string, username string, password string, server stri
 
 func main() {
 	c := make(chan os.Signal, 1)
-	pubChan = make(chan string)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	hostname, _ := os.Hostname()
 
 	// initialize struct
-	params = parameters{
+	params := &parameters{
 		hostname: hostname,
 		subServer:  "",
 		pubServer: "",
@@ -133,9 +138,10 @@ func main() {
 		clientid: hostname + strconv.Itoa(time.Now().Second()),
 		username: "",
 		password: "",
+		pubFreq: 5,
 	}
 	// get parameters from (1) environment then (2) command line
-	getParameters(&params)
+	getParameters(params)
 
 	// print out flags
 	logger.Debug("Initializing client with following parameters")
@@ -147,28 +153,34 @@ func main() {
 	logger.Debug("Clientid: ", params.clientid)
 	logger.Debug("Username: ", params.username)
 	logger.Debug("Password: ", params.password)
-	logger.Debug("Format: ", params.format)
+//	logger.Debug("Format: ", params.format)
+	logger.Debug("Publish Frequency", params.pubFreq)
 
 	if params.subServer == "" {
 		logger.Error("Must specify a server to connect to")
 		os.Exit(2)
 	}
-	subClient := createClient(params.clientid + "s", params.username, params.password, params.subServer, 
+	subClient := createClient(params.clientid + "s", 
+		params.username, params.password, params.subServer, 
 		params.qos, params.subTopic, onMessageReceived)
 	logger.Debugf("Connected to %s\n", params.subServer)
 	
 	var pubClient MQTT.Client
 	if params.pubServer != "" {
-		pubClient = createClient(params.clientid + "p", params.username, params.password, params.pubServer, params.qos, "", nil)
+		pubClient = createClient(params.clientid + "p", params.username, 
+			params.password, params.pubServer, params.qos, "", nil)
 	} else {
 		pubClient = subClient
 	}
 
+	duration := time.Duration(params.pubFreq * 100 * int(time.Millisecond))
 	for {
 		select {
-		case msg := <- pubChan:
-			logger.Info(msg)
-			pubClient.Publish(params.pubTopic, byte(params.qos), false, msg)
+		case <- time.After(duration):
+			jsonBytes, err := cmap.MarshalJSON()
+			if err == nil {
+				pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
+			}
 		case <-c:
 			os.Exit(0)
 		}
