@@ -1,7 +1,7 @@
 version: "3.3"
 
 services:
-  jdecoder:
+  sdmap-agent:
     build: 
       context: .
       dockerfile: Dockerfile
@@ -10,6 +10,7 @@ services:
     depends_on:
       - mosquitto
     environment:
+      FORMAT: 2
       PUBSERVER: mosquitto:1883
       SUBSERVER: mosquitto:1883
       SUBTOPIC: bsm
@@ -44,8 +45,8 @@ services:
       - "1883"
       - "9001"
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "1883"
+      - "9001"
 
 networks:
   mqtt:

@@ -45,3 +45,19 @@ func TestBSMJSON(t *testing.T) {
 	assert.Assert(t, isString)
 	assert.Equal(t, id, "20")
 }
+
+func TestBSMSDJSON(t *testing.T) {
+	file, err := os.Open("./test/bsm1.uper")
+	defer file.Close()
+	assert.NilError(t, err)
+	xml, err := os.Open("./test/bsm1sdmap.json")
+	defer xml.Close()
+	bytes := make([]byte, 1024)
+	read, err := file.Read(bytes)
+	assert.NilError(t, err)
+	decodedMsg := decoder.Decode(bytes, uint(read), decoder.SDBSMJSON)
+	read, err = xml.Read(bytes)
+	assert.NilError(t, err)
+	xmlStr := fmt.Sprintf("%s", bytes)
+	assert.Equal(t, decodedMsg[:10], xmlStr[:10])
+}

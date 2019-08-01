@@ -70,7 +70,7 @@ func getParameters(params *parameters) {
 	// command line overrides
 	params.hostname = *flag.String("hostname", params.hostname, "The host machine name")
 	params.subServer = *flag.String("subServer", params.subServer, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
-	params.pubServer = *flag.String("pubServer", params.subServer, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
+	params.pubServer = *flag.String("pubServer", params.pubServer, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
 	params.subTopic = *flag.String("subTopic", params.subTopic, "Topic to subscribe to")
 	params.pubTopic = *flag.String("pubTopic", params.pubTopic, "Topic to publish to")
 	params.qos = *flag.Int("qos", params.qos, "The QoS to publish/subscribe to messages at")
@@ -140,8 +140,8 @@ func main() {
 	// print out flags
 	logger.Debug("Initializing client with following parameters")
 	logger.Debug("Hostname: ", params.hostname)
-	logger.Debug("SubServer: ", params.subServer)
-	logger.Debug("PubServer: ", params.pubServer)
+	logger.Debug("Subscribe Server: ", params.subServer)
+	logger.Debug("Publish Server: ", params.pubServer)
 	logger.Debug("SubTopic: ", params.subTopic)
 	logger.Debug("PubTopic: ", params.pubTopic)
 	logger.Debug("Clientid: ", params.clientid)
@@ -153,8 +153,8 @@ func main() {
 		logger.Error("Must specify a server to connect to")
 		os.Exit(2)
 	}
-	subClient := createClient(params.clientid + "s", params.username, params.password, params.subServer, params.qos,
-		params.subTopic, onMessageReceived)
+	subClient := createClient(params.clientid + "s", params.username, params.password, params.subServer, 
+		params.qos, params.subTopic, onMessageReceived)
 	logger.Debugf("Connected to %s\n", params.subServer)
 	
 	var pubClient MQTT.Client

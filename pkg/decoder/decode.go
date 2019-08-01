@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"unsafe"
 	"strings"
+	"encoding/json"
 
 	xj "github.com/basgys/goxml2json"
 )
@@ -38,7 +39,25 @@ type FormatType int
 const (
 	XML  FormatType = iota
 	JSON FormatType = iota
+	SDBSMJSON FormatType = iota
 )
+
+// ID to identify message type
+const (
+	BSMID int64 = 20
+)
+
+// SDMap contains entries needed for SD Map
+type SDMap struct {
+	MsgCnt       int64
+	ID           string
+	Lat          int64
+	Long         int64
+	Elev         int64
+	Speed        int64
+	Heading      int64
+	Angle        int64
+}
 
 // Decode is a public function for other packages to decode
 func Decode(bytes []byte, length uint, format FormatType) string {
@@ -68,18 +87,37 @@ func Decode(bytes []byte, length uint, format FormatType) string {
 	}
 	xmlStr := fmt.Sprintf("%s", buffer)
 	switch format {
-	case XML:
-		return xmlStr
-	case JSON:
-		xml := strings.NewReader(xmlStr)
-		json, err := xj.Convert(xml)
-		if err != nil {
-			Logger.Errorf("Cannot encode to JSON: %s", err)
-			panic(err)
-		}
-		return json.String()
-		return xmlStr
-	}
+		case XML:
+			return xmlStr
+		case JSON:
+			xml := strings.NewReader(xmlStr)
+			json, err := xj.Convert(xml)
+			if err != nil {
+				Logger.Errorf("Cannot encode to JSON: %s", err)
+				panic(err)
+			}
+			return json.String()
+		case SDBSMJSON:
+			if int64(msgFrame.messageId) == BSMID {
+				coreData := (*C.BasicSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice)).coreData
+				sdData := &SDMap{
+					MsgCnt:  	int64(coreData.msgCnt),
+					ID:      	octetStringToGoString(&coreData.id),
+					Lat:     	int64(coreData.lat),
+					Long:    	int64(coreData.Long),
+					Elev:    	int64(coreData.elev),
+					Speed:      int64(coreData.speed),
+					Heading:    int64(coreData.heading),
+					Angle:      int64(coreData.angle),
+				}
+				bsmJSON, _ := json.Marshal(sdData)
+				Logger.Info(string(bsmJSON))
+				return string(bsmJSON)
+			}
+			return "" 
+		default:
+			return xmlStr
+		}	
 	return ""
 }
 

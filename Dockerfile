@@ -8,10 +8,10 @@ COPY ./ ./
 WORKDIR /src/pkg/decoder/c
 RUN make -f converter-example.mk libasncodec.a
 WORKDIR /src
-RUN go build -o j2735-decoder ./cmd/decoder-client/*.go
+RUN go build -o sdmap-agent ./cmd/sdmap-agent/*.go
 
 FROM golang:1.12-alpine
 RUN apk update
 WORKDIR /app
-COPY --from=builder /src/j2735-decoder .
-ENTRYPOINT [ "/app/j2735-decoder" ]
+COPY --from=builder /src/sdmap-agent .
+ENTRYPOINT [ "/app/sdmap-agent" ]
