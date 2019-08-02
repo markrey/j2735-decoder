@@ -165,6 +165,7 @@ func main() {
 		params.qos, params.subTopic, onMessageReceived)
 	logger.Debugf("Connected to %s\n", params.subServer)
 	
+	// create a seperate mqtt broker to publish to
 	var pubClient MQTT.Client
 	if params.pubServer != "" {
 		pubClient = createClient(params.clientid + "p", params.username, 
@@ -173,13 +174,16 @@ func main() {
 		pubClient = subClient
 	}
 
+	// frequency at which we publish the shared map
 	duration := time.Duration(params.pubFreq * 100 * int(time.Millisecond))
 	for {
 		select {
 		case <- time.After(duration):
-			jsonBytes, err := cmap.MarshalJSON()
-			if err == nil {
-				pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
+			if cmap.Count() != 0 {
+				jsonBytes, err := cmap.MarshalJSON()
+				if err == nil {
+					pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
+				}
 			}
 		case <-c:
 			os.Exit(0)
