@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
+	"strconv"
+	"sync"
 
 	"github.com/yh742/j2735-decoder/pkg/decoder"
 
@@ -18,7 +18,7 @@ import (
 )
 
 var logger log.Logger
-var cmap CMap.ConcurrentMap
+var cmap *RWMap
 
 type parameters struct {
 	hostname  string
@@ -34,60 +34,28 @@ type parameters struct {
 	pubFreq   int
 }
 
-func decodeRoutine(client MQTT.Client, message MQTT.Message) {
-	decodedMsg := decoder.Decode(message.Payload(), uint(len(message.Payload())), decoder.SDMAP)
-	sdData, ok := decodedMsg.(*decoder.SDMap)
-	if ok {
-		cmap.Set(sdData.ID, sdData)
-	}
+type RWMap struct {
+	mapInst CMap.ConcurrentMap
+	mapLock sync.RWMutex
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %s", message.Payload())
-	go decodeRoutine(client, message)
-}
-
-func getEnv(key string, def string) string {
-	variable := os.Getenv(key)
-	if variable != "" {
-		return variable
+	decodedMsg := decoder.Decode(message.Payload(), uint(len(message.Payload())), decoder.SDMAP)
+	sdData, ok := decodedMsg.(*decoder.SDMap)
+	if ok {
+		cmap.mapLock.RLock()
+		cmap.mapInst.Set(sdData.ID, sdData)
+		cmap.mapLock.RUnlock()
 	}
-	return def
-}
-
-func getParameters(params *parameters) {
-	// get environment variables
-	params.hostname = getEnv("HOSTNAME", params.hostname)
-	params.subServer = getEnv("SUBSERVER", params.subServer)
-	params.pubServer = getEnv("PUBSERVER", params.pubServer)
-	params.subTopic = getEnv("SUBTOPIC", params.subTopic)
-	params.pubTopic = getEnv("PUBTOPIC", params.pubTopic)
-	params.qos, _ = strconv.Atoi(getEnv("QOS", strconv.Itoa(params.qos)))
-	params.clientid = getEnv("CLIENTID", params.clientid)
-	params.username = getEnv("USERNAME", params.username)
-	params.password = getEnv("PASSWORD", params.password)
-//	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
-	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
-
-	// command line overrides
-	params.hostname = *flag.String("hostname", params.hostname, "The host machine name")
-	params.subServer = *flag.String("subServer", params.subServer, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
-	params.pubServer = *flag.String("pubServer", params.pubServer, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
-	params.subTopic = *flag.String("subTopic", params.subTopic, "Topic to subscribe to")
-	params.pubTopic = *flag.String("pubTopic", params.pubTopic, "Topic to publish to")
-	params.qos = *flag.Int("qos", params.qos, "The QoS to publish/subscribe to messages at")
-	params.clientid = *flag.String("clientid", params.clientid, "A clientid for the connection")
-	params.username = *flag.String("username", params.username, "A username to authenticate to the MQTT server")
-	params.password = *flag.String("password", params.password, "Password to match username")
-//	params.format = *flag.Int("format", params.format, "Decoding format of message")
-	params.pubFreq = *flag.Int("pubFreq", params.pubFreq, "Publish frequency in 100ms increments")
-	flag.Parse()
 }
 
 func init() {
 	logger = stdlog.GetFromFlags()
-	cmap  = CMap.New()
+	cmap = &RWMap{
+		mapInst: CMap.New(),
+	}
 }
 
 func createClient(clientid string, username string, password string, server string, qos int, topic string,
@@ -179,11 +147,20 @@ func main() {
 	for {
 		select {
 		case <- time.After(duration):
-			if cmap.Count() != 0 {
-				jsonBytes, err := cmap.MarshalJSON()
-				if err == nil {
-					pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
-				}
+			if cmap.mapInst.Count() != 0 {
+				cmap.mapLock.Lock()
+				mapKeys := cmap.mapInst.Keys()
+				jsonBytes, err := cmap.mapInst.MarshalJSON()
+				cmap.mapLock.Unlock()
+				// publish and delete old table entries
+				go func() {
+					if err == nil {
+						pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
+					}
+					for _, key := range mapKeys {
+						cmap.mapInst.Remove(key)	
+					}
+				}()
 			}
 		case <-c:
 			os.Exit(0)
