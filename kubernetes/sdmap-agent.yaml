@@ -12,6 +12,8 @@ spec:
       labels:
         run: sdmap-agent
     spec:
+      nodeSelector:
+        gpu: "true"
       containers:
       - name: sdmap-agent
         image: yhseanhsu/sdmap-agent:latest
@@ -24,7 +26,7 @@ spec:
             memory: "2Gi"
             ephemeral-storage: "4Gi"
         env:
-        - name: FORMAT
+        - name: PUBFREQ
           value: "1"
         - name: PUBSERVER
           value: mosquitto-broker-internal-service.default.svc.cluster.local:1883
