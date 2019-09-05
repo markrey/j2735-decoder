@@ -25,7 +25,7 @@ func getParameters(params *parameters) {
 	params.clientid = getEnv("CLIENTID", params.clientid)
 	params.username = getEnv("USERNAME", params.username)
 	params.password = getEnv("PASSWORD", params.password)
-//	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
+	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
 	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
 
 	// command line overrides
@@ -38,7 +38,7 @@ func getParameters(params *parameters) {
 	params.clientid = *flag.String("clientid", params.clientid, "A clientid for the connection")
 	params.username = *flag.String("username", params.username, "A username to authenticate to the MQTT server")
 	params.password = *flag.String("password", params.password, "Password to match username")
-//	params.format = *flag.Int("format", params.format, "Decoding format of message")
+	params.format = *flag.Int("format", params.format, "Decoding format of message")
 	params.pubFreq = *flag.Int("pubFreq", params.pubFreq, "Publish frequency in 100ms increments")
 	flag.Parse()
 }

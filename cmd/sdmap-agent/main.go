@@ -4,17 +4,17 @@ import (
 	"crypto/tls"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
 	"strconv"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/yh742/j2735-decoder/pkg/decoder"
 
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
-	CMap"github.com/orcaman/concurrent-map"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	CMap "github.com/orcaman/concurrent-map"
 )
 
 var logger log.Logger
@@ -39,15 +39,28 @@ type RWMap struct {
 	mapLock sync.RWMutex
 }
 
-func onMessageReceived(client MQTT.Client, message MQTT.Message) {
+func addEntryToMap(id string, obj interface{}) {
+	cmap.mapLock.RLock()
+	cmap.mapInst.Set(id, obj)
+	cmap.mapLock.RUnlock()
+}
+
+func onMessageReceived(format int, client MQTT.Client, message MQTT.Message) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %s", message.Payload())
-	decodedMsg := decoder.Decode(message.Payload(), uint(len(message.Payload())), decoder.SDMAP)
-	sdData, ok := decodedMsg.(*decoder.SDMap)
-	if ok {
-		cmap.mapLock.RLock()
-		cmap.mapInst.Set(sdData.ID, sdData)
-		cmap.mapLock.RUnlock()
+	decodedMsg := decoder.Decode(message.Payload(),
+		uint(len(message.Payload())),
+		decoder.FormatType(format))
+	if format == 2 {
+		sdData, ok := decodedMsg.(*decoder.SDMapBSM)
+		if ok {
+			addEntryToMap(sdData.ID, sdData)
+		}
+	} else if format == 3 {
+		sdData, ok := decodedMsg.(*decoder.SDMapPSM)
+		if ok {
+			addEntryToMap(sdData.ID, sdData)
+		}
 	}
 }
 
@@ -75,8 +88,7 @@ func createClient(clientid string, username string, password string, server stri
 	// set connection callback
 	connOpts.OnConnect = func(c MQTT.Client) {
 		if topic != "" {
-			if token := c.Subscribe(topic, byte(qos), msgRcd); 
-				token.Wait() && token.Error() != nil {
+			if token := c.Subscribe(topic, byte(qos), msgRcd); token.Wait() && token.Error() != nil {
 				logger.Error(token.Error())
 				os.Exit(3)
 			}
@@ -98,15 +110,15 @@ func main() {
 
 	// initialize struct
 	params := &parameters{
-		hostname: hostname,
-		subServer:  "",
+		hostname:  hostname,
+		subServer: "",
 		pubServer: "",
-		subTopic: "#",
-		qos:      0,
-		clientid: hostname + strconv.Itoa(time.Now().Second()),
-		username: "",
-		password: "",
-		pubFreq: 5,
+		subTopic:  "#",
+		qos:       0,
+		clientid:  hostname + strconv.Itoa(time.Now().Second()),
+		username:  "",
+		password:  "",
+		pubFreq:   5,
 	}
 	// get parameters from (1) environment then (2) command line
 	getParameters(params)
@@ -121,22 +133,24 @@ func main() {
 	logger.Debug("Clientid: ", params.clientid)
 	logger.Debug("Username: ", params.username)
 	logger.Debug("Password: ", params.password)
-//	logger.Debug("Format: ", params.format)
+	logger.Debug("Format: ", params.format)
 	logger.Debug("Publish Frequency", params.pubFreq)
 
 	if params.subServer == "" {
 		logger.Error("Must specify a server to connect to")
 		os.Exit(2)
 	}
-	subClient := createClient(params.clientid + "s", 
-		params.username, params.password, params.subServer, 
-		params.qos, params.subTopic, onMessageReceived)
+	subClient := createClient(params.clientid+"s",
+		params.username, params.password, params.subServer,
+		params.qos, params.subTopic, func(client MQTT.Client, message MQTT.Message) {
+			onMessageReceived(params.format, client, message)
+		})
 	logger.Debugf("Connected to %s\n", params.subServer)
-	
+
 	// create a seperate mqtt broker to publish to
 	var pubClient MQTT.Client
 	if params.pubServer != "" {
-		pubClient = createClient(params.clientid + "p", params.username, 
+		pubClient = createClient(params.clientid+"p", params.username,
 			params.password, params.pubServer, params.qos, "", nil)
 	} else {
 		pubClient = subClient
@@ -146,8 +160,8 @@ func main() {
 	duration := time.Duration(params.pubFreq * 100 * int(time.Millisecond))
 	for {
 		select {
-		case <- time.After(duration):
-			if cmap.mapInst.Count() != 0 {
+		case <-time.After(duration):
+			if !cmap.mapInst.IsEmpty() {
 				cmap.mapLock.Lock()
 				mapKeys := cmap.mapInst.Keys()
 				jsonBytes, err := cmap.mapInst.MarshalJSON()
@@ -158,7 +172,7 @@ func main() {
 						pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
 					}
 					for _, key := range mapKeys {
-						cmap.mapInst.Remove(key)	
+						cmap.mapInst.Remove(key)
 					}
 				}()
 			}
