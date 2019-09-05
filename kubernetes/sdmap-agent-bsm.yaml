@@ -27,7 +27,7 @@ spec:
         - name: PUBFREQ
           value: "1"
         - name: PUBSERVER
-          value: mosquitto-broker-internal-service.default.svc.cluster.local:1883
+          value: mosquitto-internal-service.default.svc.cluster.local:1883
         - name: SUBSERVER
           value: mosquitto-internal-service.default.svc.cluster.local:1883
         - name: PUBTOPIC
