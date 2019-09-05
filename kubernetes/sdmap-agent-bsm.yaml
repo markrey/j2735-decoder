@@ -37,6 +37,6 @@ spec:
         - name: SUBTOPIC
           value: VSCMobility/1.0.0/BSM/Video/Some_Merlin
         - name: FORMAT
-          value: 2
+          value: "2"
         args:
         - "log=debug"
