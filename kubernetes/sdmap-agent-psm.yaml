@@ -12,8 +12,6 @@ spec:
       labels:
         run: sdmap-agent-psm
     spec:
-      nodeSelector:
-        gpu: "true"
       containers:
       - name: sdmap-agent-psm
         image: yhseanhsu/sdmap-agent:latest
