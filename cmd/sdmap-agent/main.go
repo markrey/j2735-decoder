@@ -55,11 +55,13 @@ func onMessageReceived(format int, client MQTT.Client, message MQTT.Message) {
 		sdData, ok := decodedMsg.(*decoder.SDMapBSM)
 		if ok {
 			addEntryToMap(sdData.ID, sdData)
+			logger.Debugf("Msg ID: %s, Data: %+v", sdData.ID, sdData)
 		}
 	} else if format == 3 {
 		sdData, ok := decodedMsg.(*decoder.SDMapPSM)
 		if ok {
 			addEntryToMap(sdData.ID, sdData)
+			logger.Debugf("Msg ID: %s, Data: %+v", sdData.ID, sdData)
 		}
 	}
 }
