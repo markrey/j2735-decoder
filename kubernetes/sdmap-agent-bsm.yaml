@@ -37,4 +37,4 @@ spec:
         - name: FORMAT
           value: "2"
         args:
-        - "log=debug"
+        - "-log=debug"
