@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
-	"io/ioutil"
 
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
@@ -31,8 +31,8 @@ type parameters struct {
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
-	logger.Infof("Received message on topic: %s", message.Topic())
-	logger.Infof("Message: %s", message.Payload())
+	logger.Debugf("Received message on topic: %s", message.Topic())
+	logger.Debugf("Message: %s", message.Payload())
 }
 
 func getEnv(key string, def string) string {

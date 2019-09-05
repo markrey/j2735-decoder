@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sdmap-agent
+  name: sdmap-agent-psm
 spec:
   selector:
     matchLabels:
-      run: sdmap-agent
+      run: sdmap-agent-psm
   replicas: 1
   template:
     metadata:
       labels:
-        run: sdmap-agent
+        run: sdmap-agent-psm
     spec:
       nodeSelector:
         gpu: "true"
       containers:
-      - name: sdmap-agent
+      - name: sdmap-agent-psm
         image: yhseanhsu/sdmap-agent:latest
         imagePullPolicy: Always
         resources:
@@ -33,8 +33,10 @@ spec:
         - name: SUBSERVER
           value: mosquitto-internal-service.default.svc.cluster.local:1883
         - name: PUBTOPIC
-          value: DecodedBSM
+          value: DecodedPSM
         - name: SUBTOPIC
-          value: VSCMobility/1.0.0/BSM/Video/Some_Merlin
+          value: VSCMobility/1.0.0/PSM/Video/Some_Merlin
+        - name: FORMAT
+          value: 3
         args:
         - "log=debug"

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdmap-agent-bsm
+spec:
+  selector:
+    matchLabels:
+      run: sdmap-agent-bsm
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: sdmap-agent-bsm
+    spec:
+      nodeSelector:
+        gpu: "true"
+      containers:
+      - name: sdmap-agent-bsm
+        image: yhseanhsu/sdmap-agent:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "1Gi"
+            ephemeral-storage: "2Gi"
+          limits:
+            memory: "2Gi"
+            ephemeral-storage: "4Gi"
+        env:
+        - name: PUBFREQ
+          value: "1"
+        - name: PUBSERVER
+          value: mosquitto-broker-internal-service.default.svc.cluster.local:1883
+        - name: SUBSERVER
+          value: mosquitto-internal-service.default.svc.cluster.local:1883
+        - name: PUBTOPIC
+          value: DecodedBSM
+        - name: SUBTOPIC
+          value: VSCMobility/1.0.0/BSM/Video/Some_Merlin
+        - name: FORMAT
+          value: 2
+        args:
+        - "log=debug"
