@@ -165,16 +165,15 @@ func main() {
 		case <-time.After(duration):
 			if !cmap.mapInst.IsEmpty() {
 				cmap.mapLock.Lock()
-				mapKeys := cmap.mapInst.Keys()
 				jsonBytes, err := cmap.mapInst.MarshalJSON()
+				for _, key := range cmap.mapInst.Keys() {
+					cmap.mapInst.Remove(key)
+				}
 				cmap.mapLock.Unlock()
-				// publish and delete old table entries
+				// publish
 				go func() {
 					if err == nil {
 						pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
-					}
-					for _, key := range mapKeys {
-						cmap.mapInst.Remove(key)
 					}
 				}()
 			}
