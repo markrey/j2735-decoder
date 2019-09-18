@@ -19,9 +19,18 @@ package decoder
 //         return -1;
 //     return er.encoded;
 // }
+// size_t partIIcontent_size()
+// {
+//		return sizeof(PartIIcontent_143P0_t);
+// }
+// struct PartIIcontent* get_partII(BasicSafetyMessage_t* ptr, int index)
+// {
+// 		return ptr->partII->list.array[index];
+// }
 import "C"
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -95,16 +104,45 @@ func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) *SDMapBSM {
 	if int64(msgFrame.messageId) != BSM {
 		return nil
 	}
-	coreData := (*C.BasicSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice)).coreData
-	sdData := &SDMapBSM {
+	bsm := (*C.BasicSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice))
+	coreData := bsm.coreData
+	partII := bsm.partII
+	sdData := &SDMapBSM{
 		MsgCnt:  int64(coreData.msgCnt),
-		ID:      octetStringToGoString(&coreData.id),
+		ID:      strings.TrimSpace(octetStringToGoString(&coreData.id)),
 		Lat:     int64(coreData.lat),
 		Long:    int64(coreData.Long),
 		Elev:    int64(coreData.elev),
 		Speed:   int64(coreData.speed),
 		Heading: int64(coreData.heading),
 		Angle:   int64(coreData.angle),
+		EV:      int64(0),
+	}
+	if partII != nil {
+		const PtrSize = strconv.IntSize / 8
+		for i := uint64(0); i < uint64(partII.list.count); i++ {
+			contentPtr := (**C.PartIIcontent_143P0_t)(unsafe.Pointer(uintptr(unsafe.Pointer(partII.list.array)) + uintptr(i*PtrSize)))
+			switch uint((*contentPtr).partII_Id) {
+			// vehicle safety extension
+			case 0:
+				break
+			// special vehicle extension
+			case 1:
+				specialVehicleExtensions := (*C.SpecialVehicleExtensions_t)(unsafe.Pointer(&(*contentPtr).partII_Value.choice))
+				if specialVehicleExtensions.vehicleAlerts != nil {
+					sdData.EV = int64(specialVehicleExtensions.vehicleAlerts.sirenUse)
+				}
+				break
+			// supplmental vehicle extension
+			case 2:
+				break
+			// nothing is there or corrupt frames
+			default:
+				break
+			}
+		}
+	} else {
+		Logger.Info("Not into partII")
 	}
 	return sdData
 }
@@ -132,10 +170,10 @@ func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) *SDMapPSM {
 		return nil
 	}
 	psmData := (*C.PersonalSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice))
-	sdData := &SDMapPSM {
+	sdData := &SDMapPSM{
 		MsgCnt:    int64(psmData.msgCnt),
 		BasicType: numToPSMType(int64(psmData.basicType)),
-		ID:        octetStringToGoString(&psmData.id),
+		ID:        strings.TrimSpace(octetStringToGoString(&psmData.id)),
 		Lat:       int64(psmData.position.lat),
 		Long:      int64(psmData.position.Long),
 		Speed:     int64(psmData.speed),

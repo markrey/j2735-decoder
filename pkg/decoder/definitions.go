@@ -29,6 +29,7 @@ type SDMapBSM struct {
 	Speed   int64
 	Heading int64
 	Angle   int64
+	EV 		int64
 }
 
 // SDMapPSM contains PSM fields needed for SDMap
@@ -38,7 +39,6 @@ type SDMapPSM struct {
 	ID        string
 	Lat       int64
 	Long      int64
-//	Elev      int64
 	Speed     int64
 	Heading   int64
 }
