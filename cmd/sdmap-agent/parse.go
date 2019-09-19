@@ -27,6 +27,8 @@ func getParameters(params *parameters) {
 	params.password = getEnv("PASSWORD", params.password)
 	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
 	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
+	// reverse bearing temp fix
+	params.revBearing, _ = strconv.ParseBool(getEnv("REVBEARING", "0"))
 
 	// command line overrides
 	params.hostname = *flag.String("hostname", params.hostname, "The host machine name")

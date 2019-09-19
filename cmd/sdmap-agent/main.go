@@ -32,6 +32,8 @@ type parameters struct {
 	password  string
 	format    int
 	pubFreq   int
+	// reverse bearing temporary fix for cameras
+	revBearing bool
 }
 
 type RWMap struct {
@@ -45,24 +47,20 @@ func addEntryToMap(id string, obj interface{}) {
 	cmap.mapLock.RUnlock()
 }
 
-func onMessageReceived(format int, client MQTT.Client, message MQTT.Message) {
+// fixBearing is only used as temporary adjustment for camera feeds
+func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, fixBearing bool) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %s", message.Payload())
 	decodedMsg := decoder.Decode(message.Payload(),
 		uint(len(message.Payload())),
 		decoder.FormatType(format))
-	if format == 2 {
-		sdData, ok := decodedMsg.(*decoder.SDMapBSM)
-		if ok {
-			addEntryToMap(sdData.ID, sdData)
-			logger.Debugf("Msg ID: %s, Data: %+v", sdData.ID, sdData)
+	sdData, ok := decodedMsg.(decoder.SDMap)
+	if ok {
+		if fixBearing {
+			sdData.SetHeading(-1*sdData.GetHeading() + 28800)
 		}
-	} else if format == 3 {
-		sdData, ok := decodedMsg.(*decoder.SDMapPSM)
-		if ok {
-			addEntryToMap(sdData.ID, sdData)
-			logger.Debugf("Msg ID: %s, Data: %+v", sdData.ID, sdData)
-		}
+		addEntryToMap(sdData.GetID(), sdData)
+		logger.Debugf("Msg ID: %s, Data: %+v", sdData.GetID(), sdData)
 	}
 }
 
@@ -112,15 +110,16 @@ func main() {
 
 	// initialize struct
 	params := &parameters{
-		hostname:  hostname,
-		subServer: "",
-		pubServer: "",
-		subTopic:  "#",
-		qos:       0,
-		clientid:  hostname + strconv.Itoa(time.Now().Second()),
-		username:  "",
-		password:  "",
-		pubFreq:   5,
+		hostname:   hostname,
+		subServer:  "",
+		pubServer:  "",
+		subTopic:   "#",
+		qos:        0,
+		clientid:   hostname + strconv.Itoa(time.Now().Second()),
+		username:   "",
+		password:   "",
+		pubFreq:    5,
+		revBearing: false,
 	}
 	// get parameters from (1) environment then (2) command line
 	getParameters(params)
@@ -137,6 +136,8 @@ func main() {
 	logger.Debug("Password: ", params.password)
 	logger.Debug("Format: ", params.format)
 	logger.Debug("Publish Frequency", params.pubFreq)
+	// reversing bearing fix
+	logger.Debug("Reversing Bearing", params.revBearing)
 
 	if params.subServer == "" {
 		logger.Error("Must specify a server to connect to")
@@ -145,7 +146,7 @@ func main() {
 	subClient := createClient(params.clientid+"s",
 		params.username, params.password, params.subServer,
 		params.qos, params.subTopic, func(client MQTT.Client, message MQTT.Message) {
-			onMessageReceived(params.format, client, message)
+			onMessageReceived(params.format, client, message, params.revBearing)
 		})
 	logger.Debugf("Connected to %s\n", params.subServer)
 

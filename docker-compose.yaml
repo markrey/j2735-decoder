@@ -50,6 +50,7 @@ services:
       SUBSERVER: mosquitto:1883
       SUBTOPIC: bsm
       PUBTOPIC: decoded_bsm
+      REVBEARING: 1
     command: -log=debug
   
   jdecoder-test-pub-bsm:
