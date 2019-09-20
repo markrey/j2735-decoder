@@ -29,6 +29,7 @@ package decoder
 // }
 import "C"
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -66,8 +67,8 @@ func bitStringToGoString(bString *C.BIT_STRING_t) string {
 	return resStr
 }
 
-// convert message frame to XML
-func msgFrameToXMLString(msgFrame *C.MessageFrame_t) string {
+// msgFrameToXMLString convert message frame to XML
+func msgFrameToXMLString(msgFrame *C.MessageFrame_t) (string, error) {
 	size := 2048
 	var buffer []byte
 	for true {
@@ -78,36 +79,36 @@ func msgFrameToXMLString(msgFrame *C.MessageFrame_t) string {
 		if int(rval) == -1 {
 			err := "Cannot encode message!"
 			Logger.Error(err)
-			return ""
+			return "", errors.New(err)
 		} else if int(rval) > len(buffer) {
 			size = int(rval)
 			continue
 		}
 		break
 	}
-	return fmt.Sprintf("%s", buffer)
+	return fmt.Sprintf("%s", buffer), nil
 }
 
 // xmlStringToJsonString converts xml encoded string to json
-func xmlStringToJSONString(xmlStr string) string {
+func xmlStringToJSONString(xmlStr string) (string, error) {
 	xml := strings.NewReader(xmlStr)
 	json, err := xj.Convert(xml)
 	if err != nil {
 		Logger.Errorf("Cannot encode to JSON: %s", err)
-		panic(err)
+		return "", err
 	}
-	return json.String()
+	return json.String(), nil
 }
 
 // msgFrameToSDMapBSM converts message frames to format ingested by SDMAP
-func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) *SDMapBSM {
+func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) (*MapAgtBSM, error) {
 	if int64(msgFrame.messageId) != BSM {
-		return nil
+		return nil, errors.New("this is not the right message type")
 	}
 	bsm := (*C.BasicSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice))
 	coreData := bsm.coreData
 	partII := bsm.partII
-	sdData := &SDMapBSM{
+	sdData := &MapAgtBSM{
 		MsgCnt:  int64(coreData.msgCnt),
 		ID:      strings.TrimSpace(octetStringToGoString(&coreData.id)),
 		Lat:     int64(coreData.lat),
@@ -141,10 +142,8 @@ func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) *SDMapBSM {
 				break
 			}
 		}
-	} else {
-		Logger.Info("Not into partII")
 	}
-	return sdData
+	return sdData, nil
 }
 
 func numToPSMType(pType int64) string {
@@ -165,12 +164,12 @@ func numToPSMType(pType int64) string {
 }
 
 // msgFrameToSDMapPSM converts message frames to format ingested by SDMAP
-func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) *SDMapPSM {
+func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) (*MapAgtPSM, error) {
 	if int64(msgFrame.messageId) != PSM {
-		return nil
+		return nil, errors.New("this is not the right message type")
 	}
 	psmData := (*C.PersonalSafetyMessage_t)(unsafe.Pointer(&msgFrame.value.choice))
-	sdData := &SDMapPSM{
+	sdData := &MapAgtPSM{
 		MsgCnt:    int64(psmData.msgCnt),
 		BasicType: numToPSMType(int64(psmData.basicType)),
 		ID:        strings.TrimSpace(octetStringToGoString(&psmData.id)),
@@ -179,5 +178,5 @@ func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) *SDMapPSM {
 		Speed:     int64(psmData.speed),
 		Heading:   int64(psmData.heading),
 	}
-	return sdData
+	return sdData, nil
 }

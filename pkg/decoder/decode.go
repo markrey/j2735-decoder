@@ -10,32 +10,55 @@ package decoder
 // }
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 )
 
-// Decode is a public function for other packages to decode
-// json, xml format return full string
-// sdmap format return struct
-func Decode(bytes []byte, length uint, format FormatType) interface{} {
+// DecodeString is a public function for other packages to decode string
+// return: string in either json, xml format
+func DecodeString(bytes []byte, length uint, format StringFormatType) (string, error) {
 	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
 	if msgFrame == nil {
 		Logger.Error("Cannot decode bytes to messageframe struct")
-		return ""
+		return "", errors.New("Cannot decode bytes to messageframe struct")
 	}
 	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
 	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
 
 	// decode in different formats
 	switch format {
-		case JSON:
-			return xmlStringToJSONString(msgFrameToXMLString(msgFrame))
-		case SDMAPBSM:
-			return msgFrameToSDMapBSM(msgFrame)
-		case SDMAPPSM:
-			return msgFrametoSDMapPSM(msgFrame)
-		default:
-			return msgFrameToXMLString(msgFrame)
+	case JSON:
+		xml, err := msgFrameToXMLString(msgFrame)
+		if err != nil {
+			return "", errors.New("decoding xml error")
+		}
+		return xmlStringToJSONString(xml)
+	case XML:
+		return msgFrameToXMLString(msgFrame)
+	default:
+		return "", errors.New("format type not supported")
+	}
+}
+
+// DecodeMapAgt is a public function for struct types used for SD Maps
+// return: SDMapAgt interface
+func DecodeMapAgt(bytes []byte, length uint, format MapAgentFormatType) (MapAgtMsg, error) {
+	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
+	if msgFrame == nil {
+		Logger.Error("Cannot decode bytes to messageframe struct")
+		return nil, errors.New("Cannot decode bytes to messageframe struct")
+	}
+	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
+	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
+
+	switch format {
+	case FLTBSM:
+		return msgFrameToSDMapBSM(msgFrame)
+	case FLTPSM:
+		return msgFrametoSDMapPSM(msgFrame)
+	default:
+		return nil, errors.New("format type not supported")
 	}
 }
 

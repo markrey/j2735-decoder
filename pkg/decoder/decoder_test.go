@@ -1,6 +1,7 @@
 package decoder_test
 
 import (
+	//	"encoding/json"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"gotest.tools/assert"
 )
 
-func TestBSMXML(t *testing.T) {
+func TestBSMToXMLStringConversion(t *testing.T) {
 	file, err := os.Open("./test/bsm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
@@ -19,28 +20,26 @@ func TestBSMXML(t *testing.T) {
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint(read), decoder.XML)
-	msgStr, ok := decodedMsg.(string)
-	assert.Assert(t, ok)
+	decodedMsg, err := decoder.DecodeString(bytes, uint(read), decoder.XML)
+	assert.NilError(t, err)
 	read, err = xml.Read(bytes)
 	assert.NilError(t, err)
 	xmlStr := fmt.Sprintf("%s", bytes)
-	assert.Equal(t, msgStr[:802], xmlStr[:802])
+	assert.Equal(t, decodedMsg[:802], xmlStr[:802])
 }
 
-func TestBSMJSON(t *testing.T) {
+func TestBSMToJSONStringConversion(t *testing.T) {
 	file, err := os.Open("./test/bsm2.uper")
 	defer file.Close()
 	assert.NilError(t, err)
 	bytes := make([]byte, 2048)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint(read), decoder.JSON)
-	msgStr, ok := decodedMsg.(string)
+	decodedMsg, err := decoder.DecodeString(bytes, uint(read), decoder.JSON)
 	assert.NilError(t, err)
 	var jsonMap map[string]interface{}
-	json.Unmarshal([]byte(msgStr), &jsonMap)
-	jsonMap, ok = jsonMap["MessageFrame"].(map[string]interface{})
+	json.Unmarshal([]byte(decodedMsg), &jsonMap)
+	jsonMap, ok := jsonMap["MessageFrame"].(map[string]interface{})
 	assert.Assert(t, ok)
 	t.Log(jsonMap)
 	id, isString := jsonMap["messageId"].(string)
@@ -48,28 +47,26 @@ func TestBSMJSON(t *testing.T) {
 	assert.Equal(t, id, "20")
 }
 
-func TestBSMSDJSON(t *testing.T) {
+func TestBSMToMapAgtFormat(t *testing.T) {
 	file, err := os.Open("./test/bsm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	jsonF, err := os.Open("./test/psm.uper")
+	jsonF, err := os.Open("./test/bsm1map.json")
 	defer jsonF.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint(read), decoder.SDMAPBSM)
-	sdData, ok := decodedMsg.(*decoder.SDMapBSM)
-	assert.Assert(t, ok)
+	decodedMsg, err := decoder.DecodeMapAgt(bytes, uint(read), decoder.FLTBSM)
+	assert.NilError(t, err)
 	read, err = jsonF.Read(bytes)
 	assert.NilError(t, err)
 	jsonStr := fmt.Sprintf("%s", bytes)
-	t.Log(sdData)
-	sdJson, mErr := json.Marshal(sdData)
+	sdJson, mErr := json.Marshal(decodedMsg)
 	assert.NilError(t, mErr)
-	assert.Equal(t, string(sdJson)[:100], jsonStr[:100])
+	assert.Equal(t, string(sdJson)[:90], jsonStr[:90])
 }
 
-func TestBSMEXTSDJSON(t *testing.T) {
+func TestBSMExtToMapAgtFormat(t *testing.T) {
 	file, err := os.Open("./test/bsmExt2.uper")
 	defer file.Close()
 	assert.NilError(t, err)
@@ -78,34 +75,31 @@ func TestBSMEXTSDJSON(t *testing.T) {
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint(read), decoder.SDMAPBSM)
-	sdData, ok := decodedMsg.(*decoder.SDMapBSM)
-	assert.Assert(t, ok)
+	decodedMsg, err := decoder.DecodeMapAgt(bytes, uint(read), decoder.FLTBSM)
+	assert.NilError(t, err)
 	read, err = jsonF.Read(bytes)
 	assert.NilError(t, err)
 	jsonStr := fmt.Sprintf("%s", bytes)
-	t.Log(sdData)
-	sdJson, mErr := json.Marshal(sdData)
+	sdJson, mErr := json.Marshal(decodedMsg)
 	assert.NilError(t, mErr)
 	assert.Equal(t, string(sdJson)[:100], jsonStr[:100])
 }
 
 func TestPSMSDJSON(t *testing.T) {
-	file, err := os.Open("./test/psm.uper")
+	file, err := os.Open("./test/psm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	jsonF, err := os.Open("./test/psmsdmap.json")
+	jsonF, err := os.Open("./test/psm1map.json")
 	defer jsonF.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
 	assert.NilError(t, err)
-	decodedMsg := decoder.Decode(bytes, uint(read), decoder.SDMAPPSM)
-	sdData, ok := decodedMsg.(*decoder.SDMapPSM)
-	assert.Assert(t, ok)
+	decodedMsg, err := decoder.DecodeMapAgt(bytes, uint(read), decoder.FLTPSM)
+	assert.NilError(t, err)
 	read, err = jsonF.Read(bytes)
 	assert.NilError(t, err)
 	jsonStr := fmt.Sprintf("%s", bytes)
-	sdJson, mErr := json.Marshal(sdData)
+	sdJson, mErr := json.Marshal(decodedMsg)
 	assert.NilError(t, mErr)
 	assert.Equal(t, string(sdJson)[:100], jsonStr[:100])
 }

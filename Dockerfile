@@ -6,6 +6,7 @@ COPY ./go.mod ./go.sum ./
 RUN go mod download
 COPY ./ ./
 WORKDIR /src/pkg/decoder/c
+RUN make -f converter-example.mk clean
 RUN make -f converter-example.mk libasncodec.a
 WORKDIR /src
 RUN go build -o sdmap-agent ./cmd/sdmap-agent/*.go

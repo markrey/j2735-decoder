@@ -1,14 +1,22 @@
 package decoder
 
-// FormatType is used to identify which format to decode
-type FormatType int
+// StringFormatType is used to identify which format to decode
+type StringFormatType int
 
-// Type of decoding supported by module
+// MapAgentFormatType is used to identify
+type MapAgentFormatType int
+
+// String formats that the module supports
 const (
-	XML      FormatType = iota
-	JSON     FormatType = iota
-	SDMAPBSM FormatType = iota
-	SDMAPPSM FormatType = iota
+	XML  StringFormatType = iota
+	JSON StringFormatType = iota
+)
+
+// Map Agent format type that the module supports
+// These are flat json maps
+const (
+	FLTBSM MapAgentFormatType = iota
+	FLTPSM MapAgentFormatType = iota
 )
 
 // ID to identify message type
@@ -19,14 +27,15 @@ const (
 	PSM int64 = 32
 )
 
-type SDMap interface {
+// MapAgtMsg is an interface implemented by all map agent messages
+type MapAgtMsg interface {
 	GetID() string
 	GetHeading() int64
 	SetHeading(int64)
 }
 
-// SDMapBSM contains BSM fields needed for SDMap
-type SDMapBSM struct {
+// MapAgtBSM contains BSM fields needed for the map agent
+type MapAgtBSM struct {
 	MsgCnt  int64
 	ID      string
 	Lat     int64
@@ -38,20 +47,23 @@ type SDMapBSM struct {
 	EV      int64
 }
 
-func (bsm *SDMapBSM) GetID() string {
+// GetID gets ID of BSM
+func (bsm *MapAgtBSM) GetID() string {
 	return bsm.ID
 }
 
-func (bsm *SDMapBSM) GetHeading() int64 {
+// GetHeading gets heading of BSM
+func (bsm *MapAgtBSM) GetHeading() int64 {
 	return bsm.Heading
 }
 
-func (bsm *SDMapBSM) SetHeading(heading int64) {
+// SetHeading sets heading of BSM
+func (bsm *MapAgtBSM) SetHeading(heading int64) {
 	bsm.Heading = heading
 }
 
-// SDMapPSM contains PSM fields needed for SDMap
-type SDMapPSM struct {
+// MapAgtPSM contains PSM fields needed for SDMap
+type MapAgtPSM struct {
 	MsgCnt    int64
 	BasicType string
 	ID        string
@@ -61,14 +73,17 @@ type SDMapPSM struct {
 	Heading   int64
 }
 
-func (psm *SDMapPSM) GetID() string {
+// GetID gets ID of PSM
+func (psm *MapAgtPSM) GetID() string {
 	return psm.ID
 }
 
-func (psm *SDMapPSM) GetHeading() int64 {
+// GetHeading gets heading of PSM
+func (psm *MapAgtPSM) GetHeading() int64 {
 	return psm.Heading
 }
 
-func (psm *SDMapPSM) SetHeading(heading int64) {
+// SetHeading sets heading of PSM
+func (psm *MapAgtPSM) SetHeading(heading int64) {
 	psm.Heading = heading
 }

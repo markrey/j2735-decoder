@@ -36,6 +36,7 @@ type parameters struct {
 	revBearing bool
 }
 
+// RWMap is concurrent map with read/write lock
 type RWMap struct {
 	mapInst CMap.ConcurrentMap
 	mapLock sync.RWMutex
@@ -51,16 +52,15 @@ func addEntryToMap(id string, obj interface{}) {
 func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, fixBearing bool) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %s", message.Payload())
-	decodedMsg := decoder.Decode(message.Payload(),
+	decodedMsg, err := decoder.DecodeMapAgt(message.Payload(),
 		uint(len(message.Payload())),
-		decoder.FormatType(format))
-	sdData, ok := decodedMsg.(decoder.SDMap)
-	if ok {
+		decoder.MapAgentFormatType(format))
+	if err != nil {
 		if fixBearing {
-			sdData.SetHeading(-1*sdData.GetHeading() + 28800)
+			decodedMsg.SetHeading(-1*decodedMsg.GetHeading() + 28800)
 		}
-		addEntryToMap(sdData.GetID(), sdData)
-		logger.Debugf("Msg ID: %s, Data: %+v", sdData.GetID(), sdData)
+		addEntryToMap(decodedMsg.GetID(), decodedMsg)
+		logger.Debugf("Msg ID: %s, Data: %+v", decodedMsg.GetID(), decodedMsg)
 	}
 }
 
