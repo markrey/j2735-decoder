@@ -25,7 +25,6 @@ func DecodeString(bytes []byte, length uint, format StringFormatType) (string, e
 	}
 	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
 	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
-
 	// decode in different formats
 	switch format {
 	case JSON:
@@ -50,8 +49,7 @@ func DecodeMapAgt(bytes []byte, length uint, format MapAgentFormatType) (MapAgtM
 		return nil, errors.New("Cannot decode bytes to messageframe struct")
 	}
 	defer C.free_struct(C.asn_DEF_MessageFrame, unsafe.Pointer(msgFrame))
-	Logger.Infof("Decoding message type: %d", int64(msgFrame.messageId))
-
+	Logger.Infof("Decoding message type: %+v", format)
 	switch format {
 	case FLTBSM:
 		return msgFrameToSDMapBSM(msgFrame)
