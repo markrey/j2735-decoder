@@ -27,14 +27,16 @@ spec:
         - name: PUBFREQ
           value: "1"
         - name: PUBSERVER
-          value: mosquitto-internal-service.default.svc.cluster.local:1883
+          value: decoded-int-broker.default.svc.cluster.local:1883
         - name: SUBSERVER
           value: mosquitto-internal-service.default.svc.cluster.local:1883
         - name: PUBTOPIC
           value: DecodedPSM
         - name: SUBTOPIC
-          value: VSCMobility/1.0.0/PSM/Video/Some_Merlin
+          value: VSCMobility/1.0.0/PSM/Video/#
         - name: FORMAT
-          value: "3"
+          value: "1"
+        - name: REVBEARING
+          value: "1"
         args:
         - "-log=debug"

@@ -56,6 +56,8 @@ func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, fix
 		uint(len(message.Payload())),
 		decoder.MapAgentFormatType(format))
 	if err != nil {
+		logger.Error(err)
+	} else {
 		if fixBearing {
 			decodedMsg.SetHeading(-1*decodedMsg.GetHeading() + 28800)
 		}

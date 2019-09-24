@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mosquitto-broker-service
+  name: decoded-ext-broker
 spec:
   type: NodePort
   ports:
@@ -10,4 +10,4 @@ spec:
       targetPort: 8080
       nodePort: 30889
   selector:
-    app: mosquitto-broker
+    app: decoded-mosquitto-broker

@@ -10,7 +10,7 @@ services:
     depends_on:
       - mosquitto
     environment:
-      FORMAT: 3
+      FORMAT: 1
       PUBSERVER: mosquitto:1883
       SUBSERVER: mosquitto:1883
       SUBTOPIC: psm
@@ -33,7 +33,7 @@ services:
     command: -log=debug
     volumes:
       - type: bind
-        source: ./pkg/decoder/test/psm.uper
+        source: ./pkg/decoder/test/psm1.uper
         target: /app/psm.uper
 
   sdmap-agent-bsm:
@@ -45,7 +45,7 @@ services:
     depends_on:
       - mosquitto
     environment:
-      FORMAT: 2
+      FORMAT: 0
       PUBSERVER: mosquitto:1883
       SUBSERVER: mosquitto:1883
       SUBTOPIC: bsm
