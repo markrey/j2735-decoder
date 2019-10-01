@@ -32,6 +32,7 @@ type parameters struct {
 	password  string
 	format    int
 	pubFreq   int
+	expiry    int
 	// reverse bearing temporary fix for cameras
 	revBearing bool
 }
@@ -39,17 +40,20 @@ type parameters struct {
 // RWMap is concurrent map with read/write lock
 type RWMap struct {
 	mapInst CMap.ConcurrentMap
+	expTbl  CMap.ConcurrentMap
+	cleared bool
 	mapLock sync.RWMutex
 }
 
-func addEntryToMap(id string, obj interface{}) {
+func addEntryToMap(id string, obj interface{}, expiryCnt int) {
 	cmap.mapLock.RLock()
 	cmap.mapInst.Set(id, obj)
+	cmap.expTbl.Set(id, expiryCnt)
 	cmap.mapLock.RUnlock()
 }
 
 // fixBearing is only used as temporary adjustment for camera feeds
-func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, fixBearing bool) {
+func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, expiryCnt int, fixBearing bool) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %s", message.Payload())
 	decodedMsg, err := decoder.DecodeMapAgt(message.Payload(),
@@ -61,7 +65,7 @@ func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, fix
 		if fixBearing {
 			decodedMsg.SetHeading(-1*decodedMsg.GetHeading() + 28800)
 		}
-		addEntryToMap(decodedMsg.GetID(), decodedMsg)
+		addEntryToMap(decodedMsg.GetID(), decodedMsg, expiryCnt)
 		logger.Debugf("Msg ID: %s, Data: %+v", decodedMsg.GetID(), decodedMsg)
 	}
 }
@@ -70,6 +74,8 @@ func init() {
 	logger = stdlog.GetFromFlags()
 	cmap = &RWMap{
 		mapInst: CMap.New(),
+		expTbl:  CMap.New(),
+		cleared: false,
 	}
 }
 
@@ -121,6 +127,7 @@ func main() {
 		username:   "",
 		password:   "",
 		pubFreq:    5,
+		expiry:     1,
 		revBearing: false,
 	}
 	// get parameters from (1) environment then (2) command line
@@ -137,7 +144,8 @@ func main() {
 	logger.Debug("Username: ", params.username)
 	logger.Debug("Password: ", params.password)
 	logger.Debug("Format: ", params.format)
-	logger.Debug("Publish Frequency", params.pubFreq)
+	logger.Debug("Publish Frequency: ", params.pubFreq)
+	logger.Debug("Expiry: ", params.expiry)
 	// reversing bearing fix
 	logger.Debug("Reversing Bearing", params.revBearing)
 
@@ -148,7 +156,7 @@ func main() {
 	subClient := createClient(params.clientid+"s",
 		params.username, params.password, params.subServer,
 		params.qos, params.subTopic, func(client MQTT.Client, message MQTT.Message) {
-			onMessageReceived(params.format, client, message, params.revBearing)
+			onMessageReceived(params.format, client, message, params.expiry, params.revBearing)
 		})
 	logger.Debugf("Connected to %s\n", params.subServer)
 
@@ -168,9 +176,22 @@ func main() {
 		case <-time.After(duration):
 			if !cmap.mapInst.IsEmpty() {
 				cmap.mapLock.Lock()
+				cmap.cleared = false
 				jsonBytes, err := cmap.mapInst.MarshalJSON()
 				for _, key := range cmap.mapInst.Keys() {
-					cmap.mapInst.Remove(key)
+					if tmp, ok := cmap.expTbl.Get(key); ok {
+						expCnt := tmp.(int)
+						if expCnt == 0 {
+							cmap.expTbl.Remove(key)
+							cmap.mapInst.Remove(key)
+						} else {
+							expCnt--
+							cmap.expTbl.Set(key, expCnt)
+						}
+					} else {
+						logger.Debugf("Key %s was not found in expiry table", key)
+						cmap.mapInst.Remove(key)
+					}
 				}
 				cmap.mapLock.Unlock()
 				// publish
@@ -179,6 +200,12 @@ func main() {
 						pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
 					}
 				}()
+			} else if !cmap.cleared {
+				logger.Debug("Sending one more to clear map")
+				cmap.mapLock.Lock()
+				pubClient.Publish(params.pubTopic, byte(params.qos), false, "{}")
+				cmap.cleared = true
+				cmap.mapLock.Unlock()
 			}
 		case <-c:
 			os.Exit(0)

@@ -27,6 +27,7 @@ func getParameters(params *parameters) {
 	params.password = getEnv("PASSWORD", params.password)
 	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
 	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
+	params.expiry, _ = strconv.Atoi(getEnv("EXPIRY", strconv.Itoa(params.format)))
 	// reverse bearing temp fix
 	params.revBearing, _ = strconv.ParseBool(getEnv("REVBEARING", "0"))
 
@@ -42,5 +43,6 @@ func getParameters(params *parameters) {
 	params.password = *flag.String("password", params.password, "Password to match username")
 	params.format = *flag.Int("format", params.format, "Decoding format of message")
 	params.pubFreq = *flag.Int("pubFreq", params.pubFreq, "Publish frequency in 100ms increments")
+	params.pubFreq = *flag.Int("expiry", params.expiry, "Defines when a message is considered stale")
 	flag.Parse()
 }
