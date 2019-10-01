@@ -1,8 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/signal"
 	"strconv"
@@ -121,15 +122,32 @@ func main() {
 	}
 	logger.Debugf("Connected to %s\n", params.server)
 
-	dat, err := ioutil.ReadFile(params.filename)
+	file, err := os.Open(params.filename)
+	defer file.Close()
 	if err != nil {
 		logger.Error(err)
 		os.Exit(5)
 	}
-	for true {
-		time.Sleep(2 * time.Second)
-		client.Publish(params.pubTopic, byte(params.qos), false, dat)
-	}
+	reader := bufio.NewReader(file)
+	lineCnt := 0
+	go func() {
+		for true {
+			time.Sleep(1000 * time.Millisecond)
+			line, err := reader.ReadString('\n')
+			if err != nil && err != io.EOF {
+				logger.Error("Something bad happened ....")
+				break
+			}
+			logger.Debugf("line %d: %s", lineCnt, line)
+			client.Publish(params.pubTopic, byte(params.qos), false, line)
+			lineCnt++
+			if err == io.EOF {
+				logger.Debug("EOF reached resetting ...")
+				file.Seek(0, 0)
+				lineCnt = 0
+			}
+		}
+	}()
 	// wait for control-c signal here
 	<-c
 }

@@ -46,11 +46,13 @@ services:
       - mosquitto
     environment:
       FORMAT: 0
+      PUBFREQ: 10
       PUBSERVER: mosquitto:1883
       SUBSERVER: mosquitto:1883
       SUBTOPIC: bsm
       PUBTOPIC: decoded_bsm
-      REVBEARING: 1
+      REVBEARING: 0
+      EXPIRY: 1
     command: -log=debug
   
   jdecoder-test-pub-bsm:
@@ -63,14 +65,14 @@ services:
       - mosquitto
     environment:
       SERVER: mosquitto:1883
-      FILENAME: /app/bsm1.uper
+      FILENAME: /app/bsm.log
       PUBTOPIC: bsm
       SUBTOPIC: decoded_bsm
     command: -log=debug
     volumes:
       - type: bind
-        source: ./pkg/decoder/test/bsm1.uper
-        target: /app/bsm1.uper
+        source: ./pkg/decoder/test/bsm.log
+        target: /app/bsm.log
 
   mosquitto:
     image: eclipse-mosquitto

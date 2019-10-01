@@ -197,6 +197,7 @@ func main() {
 				// publish
 				go func() {
 					if err == nil {
+						logger.Debugf("Publishing: %s", string(jsonBytes))
 						pubClient.Publish(params.pubTopic, byte(params.qos), false, string(jsonBytes))
 					}
 				}()
