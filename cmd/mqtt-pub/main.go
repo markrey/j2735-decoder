@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/yh742/j2735-decoder/internal/paramparser"
+
 	"github.com/alexcesaro/log"
 	"github.com/alexcesaro/log/stdlog"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -37,29 +39,6 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	logger.Debugf("Message: %s", message.Payload())
 }
 
-func getEnv(key string, def string) string {
-	variable := os.Getenv(key)
-	if variable != "" {
-		return variable
-	}
-	return def
-}
-
-func getParameters(params *parameters) {
-	// get environment variables
-	params.hostname = getEnv("HOSTNAME", params.hostname)
-	params.server = getEnv("SERVER", params.server)
-	params.filename = getEnv("FILENAME", params.filename)
-	params.pubTopic = getEnv("PUBTOPIC", params.pubTopic)
-	params.subTopic = getEnv("SUBTOPIC", params.subTopic)
-	params.qos, _ = strconv.Atoi(getEnv("QOS", strconv.Itoa(params.qos)))
-	params.clientid = getEnv("CLIENTID", params.clientid)
-	params.username = getEnv("USERNAME", params.username)
-	params.password = getEnv("PASSWORD", params.password)
-	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
-	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
-}
-
 func init() {
 	logger = stdlog.GetFromFlags()
 }
@@ -70,49 +49,52 @@ func main() {
 	hostname, _ := os.Hostname()
 
 	// initialize struct
-	params = parameters{
-		hostname: hostname,
-		server:   "",
-		subTopic: "#",
-		filename: "",
-		qos:      0,
-		clientid: hostname + strconv.Itoa(time.Now().Second()),
-		username: "",
-		password: "",
-		pubFreq:  1,
+	params := &paramparser.MapParams{
+		Hostname:  hostname,
+		SubServer: "",
+		PubServer: "",
+		SubTopic:  "#",
+		Qos:       0,
+		ClientID:  hostname + strconv.Itoa(time.Now().Second()),
+		Username:  "",
+		Password:  "",
+		PubFreq:   5,
+		Expiry:    1,
+		PubFile:   "",
 	}
 	// get parameters from (1) environment then (2) command line
-	getParameters(&params)
+	paramparser.Get(params)
 
 	// print out flags
 	logger.Debug("Initializing client with following parameters")
-	logger.Debug("Hostname: ", params.hostname)
-	logger.Debug("Server: ", params.server)
-	logger.Debug("Filename: ", params.filename)
-	logger.Debug("SubTopic: ", params.subTopic)
-	logger.Debug("PubTopic: ", params.pubTopic)
-	logger.Debug("Clientid: ", params.clientid)
-	logger.Debug("Username: ", params.username)
-	logger.Debug("Password: ", params.password)
+	logger.Debug("Hostname: ", params.Hostname)
+	logger.Debug("Publish Server: ", params.PubServer)
+	logger.Debug("SubTopic: ", params.SubTopic)
+	logger.Debug("PubTopic: ", params.PubTopic)
+	logger.Debug("ClientID: ", params.ClientID)
+	logger.Debug("Username: ", params.Username)
+	logger.Debug("Password: ", params.Password)
+	logger.Debug("Publish Frequency: ", params.PubFreq)
+	logger.Debug("Publish File: ", params.PubFile)
 
-	if params.server == "" {
+	if params.PubServer == "" {
 		logger.Error("Must specify a server to connect to")
 		os.Exit(2)
 	}
 
-	connOpts := MQTT.NewClientOptions().AddBroker(params.server).SetClientID(params.clientid).SetCleanSession(true)
-	if params.username != "" {
+	connOpts := MQTT.NewClientOptions().AddBroker(params.PubServer).SetClientID(params.ClientID).SetCleanSession(true)
+	if params.Username != "" {
 		logger.Debug("Username and password specfied")
-		connOpts.SetUsername(params.username)
-		if params.password != "" {
-			connOpts.SetPassword(params.password)
+		connOpts.SetUsername(params.Username)
+		if params.Password != "" {
+			connOpts.SetPassword(params.Password)
 		}
 	}
 	tlsConfig := &tls.Config{InsecureSkipVerify: true, ClientAuth: tls.NoClientCert}
 	connOpts.SetTLSConfig(tlsConfig)
 
 	connOpts.OnConnect = func(c MQTT.Client) {
-		if token := c.Subscribe(params.subTopic, byte(params.qos), onMessageReceived); token.Wait() && token.Error() != nil {
+		if token := c.Subscribe(params.SubTopic, byte(params.Qos), onMessageReceived); token.Wait() && token.Error() != nil {
 			logger.Error(token.Error())
 			os.Exit(3)
 		}
@@ -123,9 +105,9 @@ func main() {
 		logger.Error(token.Error())
 		os.Exit(4)
 	}
-	logger.Debugf("Connected to %s\n", params.server)
+	logger.Debugf("Connected to %s\n", params.PubServer)
 
-	file, err := os.Open(params.filename)
+	file, err := os.Open(params.PubFile)
 	defer file.Close()
 	if err != nil {
 		logger.Error(err)
@@ -135,14 +117,14 @@ func main() {
 	lineCnt := 0
 	go func() {
 		for true {
-			time.Sleep(time.Duration(params.pubFreq * 100 * int(time.Millisecond)))
+			time.Sleep(time.Duration(params.PubFreq * 100 * int(time.Millisecond)))
 			line, err := reader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				logger.Error("Something bad happened ....")
 				break
 			}
 			logger.Debugf("line %d: %s", lineCnt, line)
-			client.Publish(params.pubTopic, byte(params.qos), false, line)
+			client.Publish(params.PubTopic, byte(params.Qos), false, line)
 			lineCnt++
 			if err == io.EOF {
 				logger.Debug("EOF reached resetting ...")

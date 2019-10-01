@@ -12,10 +12,10 @@ import (
 )
 
 func TestBSMToXMLStringConversion(t *testing.T) {
-	file, err := os.Open("./test/bsm1.uper")
+	file, err := os.Open("./samples/bsm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	xml, err := os.Open("./test/bsm1.xml")
+	xml, err := os.Open("./samples/bsm1.xml")
 	defer xml.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
@@ -29,7 +29,7 @@ func TestBSMToXMLStringConversion(t *testing.T) {
 }
 
 func TestBSMToJSONStringConversion(t *testing.T) {
-	file, err := os.Open("./test/bsm2.uper")
+	file, err := os.Open("./samples/bsm2.uper")
 	defer file.Close()
 	assert.NilError(t, err)
 	bytes := make([]byte, 2048)
@@ -48,10 +48,10 @@ func TestBSMToJSONStringConversion(t *testing.T) {
 }
 
 func TestBSMToMapAgtFormat(t *testing.T) {
-	file, err := os.Open("./test/bsm1.uper")
+	file, err := os.Open("./samples/bsm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	jsonF, err := os.Open("./test/bsm1map.json")
+	jsonF, err := os.Open("./samples/bsm1map.json")
 	defer jsonF.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
@@ -67,10 +67,10 @@ func TestBSMToMapAgtFormat(t *testing.T) {
 }
 
 func TestBSMExtToMapAgtFormat(t *testing.T) {
-	file, err := os.Open("./test/bsmExt2.uper")
+	file, err := os.Open("./samples/bsmExt2.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	jsonF, err := os.Open("./test/bsmExt2.json")
+	jsonF, err := os.Open("./samples/bsmExt2.json")
 	defer jsonF.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
@@ -86,10 +86,10 @@ func TestBSMExtToMapAgtFormat(t *testing.T) {
 }
 
 func TestPSMSDJSON(t *testing.T) {
-	file, err := os.Open("./test/psm1.uper")
+	file, err := os.Open("./samples/psm1.uper")
 	defer file.Close()
 	assert.NilError(t, err)
-	jsonF, err := os.Open("./test/psm1map.json")
+	jsonF, err := os.Open("./samples/psm1map.json")
 	defer jsonF.Close()
 	bytes := make([]byte, 1024)
 	read, err := file.Read(bytes)
