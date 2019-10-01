@@ -29,6 +29,7 @@ type parameters struct {
 	username string
 	password string
 	format   int
+	pubFreq  int
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
@@ -56,6 +57,7 @@ func getParameters(params *parameters) {
 	params.username = getEnv("USERNAME", params.username)
 	params.password = getEnv("PASSWORD", params.password)
 	params.format, _ = strconv.Atoi(getEnv("FORMAT", strconv.Itoa(params.format)))
+	params.pubFreq, _ = strconv.Atoi(getEnv("PUBFREQ", strconv.Itoa(params.pubFreq)))
 }
 
 func init() {
@@ -77,6 +79,7 @@ func main() {
 		clientid: hostname + strconv.Itoa(time.Now().Second()),
 		username: "",
 		password: "",
+		pubFreq:  1,
 	}
 	// get parameters from (1) environment then (2) command line
 	getParameters(&params)
@@ -132,7 +135,7 @@ func main() {
 	lineCnt := 0
 	go func() {
 		for true {
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(time.Duration(params.pubFreq * 100 * int(time.Millisecond)))
 			line, err := reader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				logger.Error("Something bad happened ....")
