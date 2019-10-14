@@ -1,44 +1,83 @@
 version: "3.3"
 
 services:
-  sdmap-agent-psm:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    networks: 
-      - mqtt
-    depends_on:
-      - mosquitto
-    environment:
-      FORMAT: 1
-      PUBFREQ: 10
-      PUBSERVER: mosquitto:1883
-      SUBSERVER: mosquitto:1883
-      SUBTOPIC: psm
-      PUBTOPIC: decoded_psm
-    command: -log=debug
+  # sdmap-agent-psm:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   networks: 
+  #     - mqtt
+  #   depends_on:
+  #     - mosquitto
+  #   environment:
+  #     FORMAT: 1
+  #     PUBFREQ: 10
+  #     PUBSERVER: mosquitto:1883
+  #     SUBSERVER: mosquitto:1883
+  #     SUBTOPIC: psm
+  #     PUBTOPIC: decoded_psm
+  #   command: -log=debug
   
-  jdecoder-test-pub-psm:
-    build: 
-      context: .
-      dockerfile: pub.Dockerfile
-    networks: 
-      - mqtt
-    depends_on:
-      - mosquitto
-    environment:
-      PUBFREQ: 10
-      PUBSERVER: mosquitto:1883
-      PUBFILE: /app/psm.uper
-      PUBTOPIC: psm
-      SUBTOPIC: decoded_psm
-    command: -log=debug
-    volumes:
-      - type: bind
-        source: ./pkg/decoder/samples/psm1.uper
-        target: /app/psm.uper
+  # jdecoder-test-pub-psm:
+  #   build: 
+  #     context: .
+  #     dockerfile: pub.Dockerfile
+  #   networks: 
+  #     - mqtt
+  #   depends_on:
+  #     - mosquitto
+  #   environment:
+  #     PUBFREQ: 10
+  #     PUBSERVER: mosquitto:1883
+  #     PUBFILE: /app/psm.uper
+  #     PUBTOPIC: psm
+  #     SUBTOPIC: decoded_psm
+  #   command: -log=debug
+  #   volumes:
+  #     - type: bind
+  #       source: ./pkg/decoder/samples/psm1.uper
+  #       target: /app/psm.uper
 
-  sdmap-agent-bsm:
+  # sdmap-agent-bsm:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   networks: 
+  #     - mqtt
+  #   depends_on:
+  #     - mosquitto
+  #   environment:
+  #     FORMAT: 0
+  #     PUBFREQ: 10
+  #     PUBSERVER: mosquitto:1883
+  #     SUBSERVER: mosquitto:1883
+  #     SUBTOPIC: bsm
+  #     PUBTOPIC: decoded_bsm
+  #     REVBEARING: 0
+  #     EXPIRY: 1
+  #   command: -log=debug
+  
+  # jdecoder-test-pub-bsm:
+  #   build: 
+  #     context: .
+  #     dockerfile: pub.Dockerfile
+  #   networks: 
+  #     - mqtt
+  #   depends_on:
+  #     - mosquitto
+  #   environment:
+  #     PUBFREQ: 10
+  #     PUBSERVER: mosquitto:1883
+  #     PUBFILE: /app/bsm.log
+  #     PUBTOPIC: bsm
+  #     SUBTOPIC: decoded_bsm
+  #   command: -log=debug
+  #   volumes:
+  #     - type: bind
+  #       source: ./pkg/decoder/samples/bsm-mcity.log
+  #       target: /app/bsm.log
+
+  sdmap-agent-spat:
     build: 
       context: .
       dockerfile: Dockerfile
@@ -47,17 +86,17 @@ services:
     depends_on:
       - mosquitto
     environment:
-      FORMAT: 0
+      FORMAT: 2
       PUBFREQ: 10
       PUBSERVER: mosquitto:1883
       SUBSERVER: mosquitto:1883
-      SUBTOPIC: bsm
-      PUBTOPIC: decoded_bsm
+      SUBTOPIC: spat
+      PUBTOPIC: decoded_spat
       REVBEARING: 0
       EXPIRY: 1
     command: -log=debug
   
-  jdecoder-test-pub-bsm:
+  jdecoder-test-pub-spat:
     build: 
       context: .
       dockerfile: pub.Dockerfile
@@ -68,14 +107,14 @@ services:
     environment:
       PUBFREQ: 10
       PUBSERVER: mosquitto:1883
-      PUBFILE: /app/bsm.log
-      PUBTOPIC: bsm
-      SUBTOPIC: decoded_bsm
+      PUBFILE: /app/spat.uper
+      PUBTOPIC: spat
+      SUBTOPIC: decoded_spat
     command: -log=debug
     volumes:
       - type: bind
-        source: ./pkg/decoder/samples/bsm.log
-        target: /app/bsm.log
+        source: ./pkg/decoder/samples/spat.uper
+        target: /app/spat.uper
 
   mosquitto:
     image: eclipse-mosquitto

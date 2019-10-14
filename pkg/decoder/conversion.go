@@ -38,6 +38,14 @@ import (
 	xj "github.com/basgys/goxml2json"
 )
 
+func getPtrSize() uint64 {
+	return strconv.IntSize / 8
+}
+
+func getSeqByIdx(seq unsafe.Pointer, idx uint64) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(seq) + uintptr(idx * getPtrSize()))
+}
+
 // octetStringToGoString takes in a ASN1 octet string and converts it to a Go string in hex
 func octetStringToGoString(oString *C.OCTET_STRING_t) string {
 	size := int(oString.size)
@@ -66,6 +74,7 @@ func bitStringToGoString(bString *C.BIT_STRING_t) string {
 	}
 	return resStr
 }
+
 
 // msgFrameToXMLString convert message frame to XML
 func msgFrameToXMLString(msgFrame *C.MessageFrame_t) (string, error) {
@@ -122,14 +131,15 @@ func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) (*MapAgtBSM, error) {
 	if partII != nil {
 		const PtrSize = strconv.IntSize / 8
 		for i := uint64(0); i < uint64(partII.list.count); i++ {
-			contentPtr := (**C.PartIIcontent_143P0_t)(unsafe.Pointer(uintptr(unsafe.Pointer(partII.list.array)) + uintptr(i*PtrSize)))
+			contentPtr := (**C.PartIIcontent_143P0_t)(getSeqByIdx(unsafe.Pointer(partII.list.array), i))
 			switch uint((*contentPtr).partII_Id) {
 			// vehicle safety extension
 			case 0:
 				break
 			// special vehicle extension
 			case 1:
-				specialVehicleExtensions := (*C.SpecialVehicleExtensions_t)(unsafe.Pointer(&(*contentPtr).partII_Value.choice))
+				specialVehicleExtensions := 
+					(*C.SpecialVehicleExtensions_t)(unsafe.Pointer(&(*contentPtr).partII_Value.choice))
 				if specialVehicleExtensions.vehicleAlerts != nil {
 					sdData.EV = int64(specialVehicleExtensions.vehicleAlerts.sirenUse)
 				}
@@ -179,4 +189,57 @@ func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) (*MapAgtPSM, error) {
 		Heading:   int64(psmData.heading),
 	}
 	return sdData, nil
+}
+
+// msgFrameToMapSPaT converts message frames to a SPaT format ingested by SDMAP
+func msgFrametoMapSPaT(msgFrame *C.MessageFrame_t) (*MapAgtSPaT, error) {
+	if int64(msgFrame.messageId) != SPaT {
+		return nil, errors.New("this is not the right message type")
+	}
+	spatData := (*C.SPAT_t)(unsafe.Pointer(&msgFrame.value.choice))
+	intersectionsCount := uint64(spatData.intersections.list.count)
+	intersectionsPtr := unsafe.Pointer(spatData.intersections.list.array)
+	var intersectionStates []IntersectionState
+	for i := uint64(0); i < intersectionsCount; i++ {
+		intersectionState := *(**C.IntersectionState_t)(getSeqByIdx(intersectionsPtr, i))
+		id := uint64(intersectionState.id.id)
+		moy := uint64(*(intersectionState.moy))
+		timeStamp := uint64(*(intersectionState.timeStamp))
+		Logger.Debugf("IntersectionState: %d, id: %d, moy: %d, ts: %d", i, id, moy, timeStamp)
+		movementStateCount := uint64((*intersectionState).states.list.count)
+		movementStatePtr := unsafe.Pointer(intersectionState.states.list.array)
+		var signalPhases []SignalPhaseGroup
+		for i := uint64(0); i < movementStateCount; i++ { 
+			signalPhaseGroup := *(**C.MovementState_t)(getSeqByIdx(movementStatePtr, i))
+			signalGroupID := uint64(signalPhaseGroup.signalGroup)
+			Logger.Debugf("SignalGroup: %d", signalGroupID)
+			movementEventCount := uint64(signalPhaseGroup.state_time_speed.list.count)
+			movementEventPtr := unsafe.Pointer(signalPhaseGroup.state_time_speed.list.array)
+			for i := uint64(0); i < movementEventCount; i++ {
+				movementEvent := *(**C.MovementEvent_t)(getSeqByIdx(movementEventPtr, i))
+				state := uint64(movementEvent.eventState);
+				minEnd := uint64(movementEvent.timing.minEndTime);
+				maxEnd := uint64(*(movementEvent.timing.maxEndTime));
+				Logger.Debugf("MovementEvent: %d, state: %d, minEnd: %d, maxEnd: %d", i, state, minEnd, maxEnd)
+				sigPhase := SignalPhaseGroup {
+					GroupID: signalGroupID,
+					Status: state,
+					MaxEndTime: maxEnd,
+					MinEndTime: minEnd,
+				}
+				signalPhases = append(signalPhases, sigPhase)
+			} 
+		}
+		intersectionStates = append(intersectionStates, IntersectionState {
+			ID: id,
+			MinuteOfYear: moy,
+			TimeStamp: timeStamp,
+			SignalPhases: signalPhases,
+		})
+		Logger.Info("ADDED entry into interseciton states")
+	}
+	spatMsg := &MapAgtSPaT {
+		IntersectionStateList: intersectionStates,
+	}
+	return spatMsg, nil
 }

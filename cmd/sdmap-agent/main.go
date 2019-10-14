@@ -45,10 +45,15 @@ func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, exp
 		decoder.MapAgentFormatType(format))
 	if err != nil {
 		logger.Error(err)
+	} else if decoder.MapAgentFormatType(format) == decoder.MAPSPaT {
+		field, ok := decodedMsg.(*decoder.MapAgtSPaT)
+		if !ok {
+			logger.Error(err)
+		}
+		for _, intersectionstate := range field.IntersectionStateList {
+			addEntryToMap(strconv.FormatUint(intersectionstate.ID, 10), intersectionstate, expiryCnt)
+		}
 	} else {
-		// if fixBearing {
-		// 	decodedMsg.SetHeading(-1*decodedMsg.GetHeading() + 28800)
-		// }
 		addEntryToMap(decodedMsg.GetID(), decodedMsg, expiryCnt)
 		logger.Debugf("Msg ID: %s, Data: %+v", decodedMsg.GetID(), decodedMsg)
 	}

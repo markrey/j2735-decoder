@@ -15,23 +15,57 @@ const (
 // Map Agent format type that the module supports
 // These are flat json maps
 const (
-	FLTBSM MapAgentFormatType = iota
-	FLTPSM MapAgentFormatType = iota
+	FLTBSM  MapAgentFormatType = iota
+	FLTPSM  MapAgentFormatType = iota
+	MAPSPaT MapAgentFormatType = iota
 )
 
 // ID to identify message type
 const (
-	BSM int64 = 20
-	EVA int64 = 22
-	RSA int64 = 27
-	PSM int64 = 32
+	SPaT int64 = 19
+	BSM  int64 = 20
+	EVA  int64 = 22
+	RSA  int64 = 27
+	PSM  int64 = 32
 )
 
 // MapAgtMsg is an interface implemented by all map agent messages
 type MapAgtMsg interface {
 	GetID() string
-	GetHeading() int64
-	SetHeading(int64)
+}
+
+// MapAgtSPaT contains fields regarding multiple intersections
+type MapAgtSPaT struct {
+	IntersectionStateList []IntersectionState
+}
+
+// IntersectionState contains fields regarding one intersection
+type IntersectionState struct {
+	ID           uint64
+	MinuteOfYear uint64
+	TimeStamp    uint64
+	SignalPhases []SignalPhaseGroup
+}
+
+// SignalPhaseGroup containers fields for one signal group
+type SignalPhaseGroup struct {
+	GroupID    uint64
+	Status     uint64
+	MaxEndTime uint64
+	MinEndTime uint64
+}
+
+// GetID gets ID of SPaT
+func (spat *MapAgtSPaT) GetID() string {
+	var ID = ""
+	for i := 0; i < len(spat.IntersectionStateList); i++ {
+		if i == len(spat.IntersectionStateList)-1 {
+			ID += string(spat.IntersectionStateList[i].ID)
+		} else {
+			ID += string(spat.IntersectionStateList[i].ID) + ","
+		}
+	}
+	return ID
 }
 
 // MapAgtBSM contains BSM fields needed for the map agent
@@ -52,16 +86,6 @@ func (bsm *MapAgtBSM) GetID() string {
 	return bsm.ID
 }
 
-// GetHeading gets heading of BSM
-func (bsm *MapAgtBSM) GetHeading() int64 {
-	return bsm.Heading
-}
-
-// SetHeading sets heading of BSM
-func (bsm *MapAgtBSM) SetHeading(heading int64) {
-	bsm.Heading = heading
-}
-
 // MapAgtPSM contains PSM fields needed for SDMap
 type MapAgtPSM struct {
 	MsgCnt    int64
@@ -76,14 +100,4 @@ type MapAgtPSM struct {
 // GetID gets ID of PSM
 func (psm *MapAgtPSM) GetID() string {
 	return psm.ID
-}
-
-// GetHeading gets heading of PSM
-func (psm *MapAgtPSM) GetHeading() int64 {
-	return psm.Heading
-}
-
-// SetHeading sets heading of PSM
-func (psm *MapAgtPSM) SetHeading(heading int64) {
-	psm.Heading = heading
 }

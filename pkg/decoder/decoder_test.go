@@ -103,3 +103,22 @@ func TestPSMSDJSON(t *testing.T) {
 	assert.NilError(t, mErr)
 	assert.Equal(t, string(sdJson)[:100], jsonStr[:100])
 }
+
+func TestSPaTSDJSON(t *testing.T) {
+	file, err := os.Open("./samples/spat.uper")
+	defer file.Close()
+	assert.NilError(t, err)
+	jsonF, err := os.Open("./samples/spat.json")
+	defer jsonF.Close()
+	bytes := make([]byte, 1024)
+	read, err := file.Read(bytes)
+	assert.NilError(t, err)
+	decodedMsg, err := decoder.DecodeMapAgt(bytes, uint(read), decoder.MapAgentFormatType(2))
+	assert.NilError(t, err)
+	read, err = jsonF.Read(bytes)
+	assert.NilError(t, err)
+	jsonStr := fmt.Sprintf("%s", bytes)
+	sdJson, mErr := json.Marshal(decodedMsg)
+	assert.NilError(t, mErr)
+	assert.Equal(t, string(sdJson)[:300], jsonStr[:300])
+}

@@ -55,6 +55,8 @@ func DecodeMapAgt(bytes []byte, length uint, format MapAgentFormatType) (MapAgtM
 		return msgFrameToSDMapBSM(msgFrame)
 	case FLTPSM:
 		return msgFrametoSDMapPSM(msgFrame)
+	case MAPSPaT:
+		return msgFrametoMapSPaT(msgFrame)
 	default:
 		return nil, errors.New("format type not supported")
 	}
