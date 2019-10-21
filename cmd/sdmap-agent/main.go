@@ -39,7 +39,14 @@ func addEntryToMap(id string, obj interface{}, expiryCnt int) {
 // fixBearing is only used as temporary adjustment for camera feeds
 func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, expiryCnt int) { // , fixBearing bool) {
 	logger.Infof("Received message on topic: %s", message.Topic())
-	logger.Infof("Message: %s", message.Payload())
+	logger.Infof("Message: %X", message.Payload())
+	// for decoding hex
+	// data, err := hex.DecodeString(hexString)
+	// if err != nil {
+	// 	logger.Error(err)
+	// 	return
+	// }
+
 	decodedMsg, err := decoder.DecodeMapAgt(message.Payload(),
 		uint(len(message.Payload())),
 		decoder.MapAgentFormatType(format))
