@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/hex"
 	"io"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -61,6 +63,7 @@ func main() {
 		PubFreq:   5,
 		Expiry:    1,
 		PubFile:   "",
+		Format:    0,
 	}
 	// get parameters from (1) environment then (2) command line
 	paramparser.Get(params)
@@ -121,10 +124,18 @@ func main() {
 			line, err := reader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				logger.Error("Something bad happened ....")
-				break
+				continue
 			}
-			logger.Debugf("line %d: %s", lineCnt, line)
-			client.Publish(params.PubTopic, byte(params.Qos), false, line)
+			splits := strings.Split(line, ":")
+			hexString := strings.TrimSpace(splits[len(splits)-1])
+			data, err := hex.DecodeString(hexString)
+			if err != nil {
+				logger.Error(err)
+				logger.Error(hexString)
+				continue
+			}
+			logger.Debugf("line %d: %s", lineCnt, hexString)
+			client.Publish(params.PubTopic, byte(params.Qos), false, data)
 			lineCnt++
 			if err == io.EOF {
 				logger.Debug("EOF reached resetting ...")
