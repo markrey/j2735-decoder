@@ -66,15 +66,16 @@ services:
     depends_on:
       - mosquitto
     environment:
-      PUBFREQ: 10
+      FORMAT: 0
+      PUBFREQ: 1
       PUBSERVER: mosquitto:1883
       PUBFILE: /app/bsm.log
       PUBTOPIC: bsm
       SUBTOPIC: decoded_bsm
-    command: -log=debug
+    command: -log=info
     volumes:
       - type: bind
-        source: ./pkg/decoder/samples/bsmExt2.uper
+        source: ./pkg/decoder/samples/logs/bsm-10-23.log
         target: /app/bsm.log
 
   # sdmap-agent-spat:

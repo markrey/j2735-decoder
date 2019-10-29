@@ -120,7 +120,7 @@ func main() {
 	lineCnt := 0
 	go func() {
 		for true {
-			time.Sleep(time.Duration(params.PubFreq * 100 * int(time.Millisecond)))
+			time.Sleep(time.Duration(params.PubFreq * int(time.Millisecond)))
 			line, err := reader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				logger.Error("Something bad happened ....")

@@ -166,7 +166,7 @@ func main() {
 	}
 
 	// frequency at which we publish the shared map
-	duration := time.Duration(params.PubFreq * 100 * int(time.Millisecond))
+	duration := time.Duration(params.PubFreq * int(time.Millisecond))
 	for {
 		select {
 		case <-time.After(duration):
