@@ -33,7 +33,7 @@ spec:
         - name: PUBTOPIC
           value: DecodedSPaT
         - name: SUBTOPIC
-          value: VSCMobility/1.0.0/BSM/self/#
+          value: VSCMobility/1.0.0/SPaT/#
         - name: FORMAT
           value: "2"
         args:

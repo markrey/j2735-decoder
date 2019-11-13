@@ -12,6 +12,6 @@ FROM golang:1.12-alpine
 RUN apk update
 WORKDIR /app
 COPY --from=builder /src/pkg/decoder/samples/logs/bsm-10-23.log .
-COPY --from=builder /src/pkg/decoder/samples/spat.uper .
+COPY --from=builder /src/pkg/decoder/samples/logs/spat.log .
 COPY --from=builder /src/sdmap-test-agent .
 ENTRYPOINT [ "/app/sdmap-test-agent" ]
