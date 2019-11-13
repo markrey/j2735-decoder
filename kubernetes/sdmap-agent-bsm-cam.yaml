@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sdmap-agent-psm
+  name: sdmap-agent-bsm-cam
 spec:
   selector:
     matchLabels:
-      run: sdmap-agent-psm
+      run: sdmap-agent-bsm-cam
   replicas: 1
   template:
     metadata:
       labels:
-        run: sdmap-agent-psm
+        run: sdmap-agent-bsm-cam
     spec:
       containers:
-      - name: sdmap-agent-psm
+      - name: sdmap-agent-bsm-cam
         image: yhseanhsu/sdmap-agent:latest
         imagePullPolicy: Always
         resources:
@@ -25,17 +25,17 @@ spec:
             ephemeral-storage: "4Gi"
         env:
         - name: PUBFREQ
-          value: "1"
+          value: "2"
         - name: PUBSERVER
           value: decoded-int-broker.default.svc.cluster.local:1883
         - name: SUBSERVER
           value: mosquitto-internal-service.default.svc.cluster.local:1883
         - name: PUBTOPIC
-          value: DecodedPSM
+          value: DecodedBSM
         - name: SUBTOPIC
-          value: VSCMobility/1.0.0/PSM/Video/#
+          value: VSCMobility/1.0.0/BSM/Video/#
         - name: FORMAT
-          value: "1"
+          value: "0"
         - name: EXPIRY
           value: "4"
         args:

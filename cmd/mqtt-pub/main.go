@@ -126,6 +126,12 @@ func main() {
 				logger.Error("Something bad happened ....")
 				continue
 			}
+			if err == io.EOF {
+				logger.Debug("EOF reached resetting ...")
+				file.Seek(0, 0)
+				lineCnt = 0
+				continue
+			}
 			splits := strings.Split(line, ":")
 			hexString := strings.TrimSpace(splits[len(splits)-1])
 			data, err := hex.DecodeString(hexString)
@@ -137,11 +143,6 @@ func main() {
 			logger.Debugf("line %d: %s", lineCnt, hexString)
 			client.Publish(params.PubTopic, byte(params.Qos), false, data)
 			lineCnt++
-			if err == io.EOF {
-				logger.Debug("EOF reached resetting ...")
-				file.Seek(0, 0)
-				lineCnt = 0
-			}
 		}
 	}()
 	// wait for control-c signal here

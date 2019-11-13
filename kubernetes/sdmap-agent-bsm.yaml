@@ -25,7 +25,7 @@ spec:
             ephemeral-storage: "4Gi"
         env:
         - name: PUBFREQ
-          value: "1"
+          value: "2"
         - name: PUBSERVER
           value: decoded-int-broker.default.svc.cluster.local:1883
         - name: SUBSERVER
@@ -36,5 +36,7 @@ spec:
           value: VSCMobility/1.0.0/BSM/self/#
         - name: FORMAT
           value: "0"
+        - name: EXPIRY
+          value: "4"
         args:
         - "-log=debug"
