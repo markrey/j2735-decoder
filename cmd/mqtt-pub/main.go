@@ -136,12 +136,12 @@ func main() {
 			hexString := strings.TrimSpace(splits[len(splits)-1])
 			data, err := hex.DecodeString(hexString)
 			if err != nil {
-				logger.Error(err)
-				logger.Error(hexString)
-				continue
+				logger.Debugf("publishing raw line %d: %s", lineCnt, line)
+				client.Publish(params.PubTopic, byte(params.Qos), false, line)
+			} else {
+				logger.Debugf("line %d: %s", lineCnt, hexString)
+				client.Publish(params.PubTopic, byte(params.Qos), false, data)
 			}
-			logger.Debugf("line %d: %s", lineCnt, hexString)
-			client.Publish(params.PubTopic, byte(params.Qos), false, data)
 			lineCnt++
 		}
 	}()

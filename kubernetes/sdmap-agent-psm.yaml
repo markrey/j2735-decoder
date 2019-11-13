@@ -25,7 +25,7 @@ spec:
             ephemeral-storage: "4Gi"
         env:
         - name: PUBFREQ
-          value: "1"
+          value: "100"
         - name: PUBSERVER
           value: decoded-int-broker.default.svc.cluster.local:1883
         - name: SUBSERVER

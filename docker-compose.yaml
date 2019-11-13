@@ -72,10 +72,10 @@ services:
       PUBFILE: /app/bsm.log
       PUBTOPIC: bsm
       SUBTOPIC: decoded_bsm
-    command: -log=info
+    command: -log=debug
     volumes:
       - type: bind
-        source: ./pkg/decoder/samples/logs/bsm-10-23.log
+        source: ./pkg/decoder/samples/logs/spat.log
         target: /app/bsm.log
 
   # sdmap-agent-spat:
