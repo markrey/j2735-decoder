@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: decoded-mosquitto-conf
+data:
+  mosquitto.conf: |-
+    pid_file /var/run/mosquitto.pid
+    log_dest file /mosquitto/log/mosquitto.log
+    log_type all 
+
+    listener 1883
+
+    listener 8080
+    protocol websockets
+    allow_anonymous true
+    require_certificate false
+    cafile /etc/letsencrypt/ca.crt
+    certfile /etc/letsencrypt/tls.crt
+    keyfile /etc/letsencrypt/tls.key

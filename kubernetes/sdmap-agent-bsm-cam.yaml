@@ -37,6 +37,6 @@ spec:
         - name: FORMAT
           value: "0"
         - name: EXPIRY
-          value: "4"
+          value: "10"
         args:
         - "-log=debug"

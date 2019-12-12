@@ -1,0 +1,34 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: decoded-mosquitto-broker
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: decoded-mosquitto-broker
+    spec:
+      containers:
+        - name: mosquitto-broker
+          image: eclipse-mosquitto:latest
+          imagePullPolicy: Always
+          ports:
+          - name: mqtt
+            containerPort: 1883
+          - name: websocket
+            containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config
+              readOnly: true
+            - name: letsencrypt-prod
+              mountPath: /etc/letsencrypt
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: decoded-mosquitto-conf
+        - name: letsencrypt-prod
+          secret:
+            secretName: letsencrypt-prod
