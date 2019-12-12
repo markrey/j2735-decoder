@@ -119,7 +119,6 @@ func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) (*MapAgtBSM, error) {
 	partII := bsm.partII
 	sdData := &MapAgtBSM{
 		MsgCnt:  int64(coreData.msgCnt),
-		ID:      strings.TrimSpace(octetStringToGoString(&coreData.id)),
 		Lat:     int64(coreData.lat),
 		Long:    int64(coreData.Long),
 		Elev:    int64(coreData.elev),
@@ -128,6 +127,7 @@ func msgFrameToSDMapBSM(msgFrame *C.MessageFrame_t) (*MapAgtBSM, error) {
 		Angle:   int64(coreData.angle),
 		EV:      int64(0),
 	}
+	sdData.ID = strings.TrimSpace(octetStringToGoString(&coreData.id))
 	if partII != nil {
 		const PtrSize = strconv.IntSize / 8
 		for i := uint64(0); i < uint64(partII.list.count); i++ {
@@ -182,17 +182,17 @@ func msgFrametoSDMapPSM(msgFrame *C.MessageFrame_t) (*MapAgtPSM, error) {
 	sdData := &MapAgtPSM{
 		MsgCnt:    int64(psmData.msgCnt),
 		BasicType: numToPSMType(int64(psmData.basicType)),
-		ID:        strings.TrimSpace(octetStringToGoString(&psmData.id)),
 		Lat:       int64(psmData.position.lat),
 		Long:      int64(psmData.position.Long),
 		Speed:     int64(psmData.speed),
 		Heading:   int64(psmData.heading),
 	}
+	sdData.ID = strings.TrimSpace(octetStringToGoString(&psmData.id))
 	return sdData, nil
 }
 
 // msgFrameToMapSPaT converts message frames to a SPaT format ingested by SDMAP
-func msgFrametoMapSPaT(msgFrame *C.MessageFrame_t) (*MapAgtSPaT, error) {
+func msgFrametoMapSPaT(msgFrame *C.MessageFrame_t) (*SPaTList, error) {
 	if int64(msgFrame.messageId) != SPaT {
 		return nil, errors.New("this is not the right message type")
 	}
@@ -202,7 +202,7 @@ func msgFrametoMapSPaT(msgFrame *C.MessageFrame_t) (*MapAgtSPaT, error) {
 	var intersectionStates []IntersectionState
 	for i := uint64(0); i < intersectionsCount; i++ {
 		intersectionState := *(**C.IntersectionState_t)(getSeqByIdx(intersectionsPtr, i))
-		id := uint64(intersectionState.id.id)
+		id := fmt.Sprint(uint64(intersectionState.id.id))
 		moy := uint64(*(intersectionState.moy))
 		timeStamp := uint64(*(intersectionState.timeStamp))
 		Logger.Debugf("IntersectionState: %d, id: %d, moy: %d, ts: %d", i, id, moy, timeStamp)
@@ -230,15 +230,16 @@ func msgFrametoMapSPaT(msgFrame *C.MessageFrame_t) (*MapAgtSPaT, error) {
 				signalPhases = append(signalPhases, sigPhase)
 			} 
 		}
-		intersectionStates = append(intersectionStates, IntersectionState {
-			ID: id,
+		state := IntersectionState {
 			MinuteOfYear: moy,
 			TimeStamp: timeStamp,
 			SignalPhases: signalPhases,
-		})
+		}
+		state.ID = id
+		intersectionStates = append(intersectionStates, state)
 		Logger.Info("ADDED entry into interseciton states")
 	}
-	spatMsg := &MapAgtSPaT {
+	spatMsg := &SPaTList  {
 		IntersectionStateList: intersectionStates,
 	}
 	return spatMsg, nil

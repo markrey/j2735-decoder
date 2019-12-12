@@ -42,7 +42,7 @@ func DecodeString(bytes []byte, length uint, format StringFormatType) (string, e
 
 // DecodeMapAgt is a public function for struct types used for SD Maps
 // return: SDMapAgt interface
-func DecodeMapAgt(bytes []byte, length uint, format MapAgentFormatType) (MapAgtMsg, error) {
+func DecodeMapAgt(bytes []byte, length uint, format MapAgentFormatType) (interface{}, error) {
 	msgFrame := decodeMessageFrame(&C.asn_DEF_MessageFrame, bytes, uint64(length))
 	if msgFrame == nil {
 		Logger.Error("Cannot decode bytes to messageframe struct")

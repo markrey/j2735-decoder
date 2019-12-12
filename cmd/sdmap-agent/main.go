@@ -36,7 +36,7 @@ func addEntryToMap(id string, obj interface{}, expiryCnt int) {
 	cmap.mapLock.RUnlock()
 }
 
-// fixBearing is only used as temporary adjustment for camera feeds
+// executes when messages arrive from the broker
 func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, expiryCnt int) { // , fixBearing bool) {
 	logger.Infof("Received message on topic: %s", message.Topic())
 	logger.Infof("Message: %X", message.Payload())
@@ -52,17 +52,29 @@ func onMessageReceived(format int, client MQTT.Client, message MQTT.Message, exp
 		decoder.MapAgentFormatType(format))
 	if err != nil {
 		logger.Error(err)
-	} else if decoder.MapAgentFormatType(format) == decoder.MAPSPaT {
-		field, ok := decodedMsg.(*decoder.MapAgtSPaT)
+		return
+	}
+	logger.Debugf("Msg Data: %+v, %d, %d", decodedMsg, decoder.MapAgentFormatType(format), decoder.FLTBSM)
+
+	if decoder.MapAgentFormatType(format) == decoder.MAPSPaT {
+		field, ok := decodedMsg.(*decoder.SPaTList)
 		if !ok {
 			logger.Error(err)
+			return
 		}
 		for _, intersectionstate := range field.IntersectionStateList {
-			addEntryToMap(strconv.FormatUint(intersectionstate.ID, 10), intersectionstate, expiryCnt)
+			intersectionstate.SetTopic(message.Topic())
+			addEntryToMap(intersectionstate.GetID(), intersectionstate, expiryCnt)
 		}
-	} else {
-		addEntryToMap(decodedMsg.GetID(), decodedMsg, expiryCnt)
-		logger.Debugf("Msg ID: %s, Data: %+v", decodedMsg.GetID(), decodedMsg)
+	} else if decoder.MapAgentFormatType(format) == decoder.FLTPSM ||
+		decoder.MapAgentFormatType(format) == decoder.FLTBSM {
+		msg, ok := decodedMsg.(decoder.MapAgtMsg)
+		if !ok {
+			logger.Errorf("Cannot convert to MapAgtMsg interface")
+			return
+		}
+		msg.SetTopic(message.Topic())
+		addEntryToMap(msg.GetID(), msg, expiryCnt)
 	}
 }
 
@@ -173,20 +185,26 @@ func main() {
 			if !cmap.mapInst.IsEmpty() {
 				cmap.mapLock.Lock()
 				cmap.cleared = false
+				logger.Debugf("Starting Marshall...")
 				jsonBytes, err := cmap.mapInst.MarshalJSON()
-				for _, key := range cmap.mapInst.Keys() {
-					if tmp, ok := cmap.expTbl.Get(key); ok {
-						expCnt := tmp.(int)
-						if expCnt == 0 {
-							cmap.expTbl.Remove(key)
-							cmap.mapInst.Remove(key)
+				logger.Debugf("Marshalling JSON %v, %v", jsonBytes, err)
+				if err != nil {
+					logger.Error(err)
+				} else {
+					for _, key := range cmap.mapInst.Keys() {
+						if tmp, ok := cmap.expTbl.Get(key); ok {
+							expCnt := tmp.(int)
+							if expCnt == 0 {
+								cmap.expTbl.Remove(key)
+								cmap.mapInst.Remove(key)
+							} else {
+								expCnt--
+								cmap.expTbl.Set(key, expCnt)
+							}
 						} else {
-							expCnt--
-							cmap.expTbl.Set(key, expCnt)
+							logger.Debugf("Key %s was not found in expiry table", key)
+							cmap.mapInst.Remove(key)
 						}
-					} else {
-						logger.Debugf("Key %s was not found in expiry table", key)
-						cmap.mapInst.Remove(key)
 					}
 				}
 				cmap.mapLock.Unlock()

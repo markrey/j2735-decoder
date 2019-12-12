@@ -29,19 +29,36 @@ const (
 	PSM  int64 = 32
 )
 
-// MapAgtMsg is an interface implemented by all map agent messages
+// MapAgtMsg is interface for all map agt messages
 type MapAgtMsg interface {
 	GetID() string
+	SetTopic(topic string)
 }
 
-// MapAgtSPaT contains fields regarding multiple intersections
-type MapAgtSPaT struct {
+// MapAgtPlugin is an mixin for all map agt messages
+type MapAgtPlugin struct {
+	ID    string
+	Topic string
+}
+
+// GetID gets ID of map agent entity
+func (agt *MapAgtPlugin) GetID() string {
+	return agt.ID
+}
+
+// SetTopic sets topic of map agent entity
+func (agt *MapAgtPlugin) SetTopic(topic string) {
+	agt.Topic = topic
+}
+
+// SPaTList contains fields regarding multiple intersections
+type SPaTList struct {
 	IntersectionStateList []IntersectionState
 }
 
 // IntersectionState contains fields regarding one intersection
 type IntersectionState struct {
-	ID           uint64
+	MapAgtPlugin
 	MinuteOfYear uint64
 	TimeStamp    uint64
 	SignalPhases []SignalPhaseGroup
@@ -55,23 +72,10 @@ type SignalPhaseGroup struct {
 	MinEndTime uint64
 }
 
-// GetID gets ID of SPaT
-func (spat *MapAgtSPaT) GetID() string {
-	var ID = ""
-	for i := 0; i < len(spat.IntersectionStateList); i++ {
-		if i == len(spat.IntersectionStateList)-1 {
-			ID += string(spat.IntersectionStateList[i].ID)
-		} else {
-			ID += string(spat.IntersectionStateList[i].ID) + ","
-		}
-	}
-	return ID
-}
-
 // MapAgtBSM contains BSM fields needed for the map agent
 type MapAgtBSM struct {
+	MapAgtPlugin
 	MsgCnt  int64
-	ID      string
 	Lat     int64
 	Long    int64
 	Elev    int64
@@ -81,23 +85,13 @@ type MapAgtBSM struct {
 	EV      int64
 }
 
-// GetID gets ID of BSM
-func (bsm *MapAgtBSM) GetID() string {
-	return bsm.ID
-}
-
 // MapAgtPSM contains PSM fields needed for SDMap
 type MapAgtPSM struct {
+	MapAgtPlugin
 	MsgCnt    int64
 	BasicType string
-	ID        string
 	Lat       int64
 	Long      int64
 	Speed     int64
 	Heading   int64
-}
-
-// GetID gets ID of PSM
-func (psm *MapAgtPSM) GetID() string {
-	return psm.ID
 }
